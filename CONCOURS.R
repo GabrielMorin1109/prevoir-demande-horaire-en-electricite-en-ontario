@@ -20,6 +20,14 @@ ad.df <- read.csv(paste0(getwd(),'/Database/annual_demand.csv'),sep=';', encodin
 hw.df <- read.csv(paste0(getwd(),'/Database/hourly_weather.csv'),sep=';', encoding = "UTF-8")
 
 #-----
+
+# arrangement des dates
+{
+  hd.df$Date.s <- paste(hd.df$Date, hd.df$Hour, sep = " ") %>% ymd_h()
+  hd.df <- hd.df[, !colnames(hd.df) %in% c("Date", "Hour", "Year", "Month")]
+}
+
+
 # Validations 
 nrow(hourly_demand) == nrow(hourly_weather)
 nrow(hourly_demand)
