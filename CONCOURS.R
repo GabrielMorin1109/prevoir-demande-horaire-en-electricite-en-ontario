@@ -2,7 +2,7 @@
 library(openxlsx)
 library(usethis)
 # install.packages("openxlsx", dependencies = TRUE)
-print(testing)
+print(testings)
 
 library(tmaptools)
 
@@ -14,7 +14,7 @@ jhgkads
 asdfghj
 salut
 
-  
+
 print("hello world from X")
 
 
