@@ -1,8 +1,5 @@
 options(java.parameters = "-Xmx8000m") #afin de donner plus de heap space a java
 # Library
-library(tidyverse)
-library(lubridate)
-library(stringr)
 {
   list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod",
                 "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate")
@@ -29,4 +26,10 @@ names(hw.df) <- iconv(names(hw.df), to = "ASCII", sub = "")
 
 # Validations 
 nrow(hourly_demand) == nrow(hourly_weather)
+nrow(hourly_demand)
+nrow(annual_demand)
 
+plot(hourly_demand[hourly_demand$Hour==1,"Total.Energy.Use.from.Electricity..MW."],type='l')
+hourly_demand[hourly_demand$Total.Energy.Use.from.Electricity..MW. == min(hourly_demand[hourly_demand$Hour==1,"Total.Energy.Use.from.Electricity..MW."]) & hourly_demand$Hour==1, ] 
+
+hourly_demand[hourly_demand$Date == '15-août-03' | hourly_demand$Date == '14-août-03',]
