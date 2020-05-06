@@ -23,3 +23,4 @@ salut
 print("hello world from X")
 
 
+getwd()
