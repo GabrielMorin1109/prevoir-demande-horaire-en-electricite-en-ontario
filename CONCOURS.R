@@ -18,13 +18,22 @@ options(java.parameters = "-Xmx8000m") #afin de donner plus de heap space a java
 hd.df <- read.csv(paste0(getwd(),'/Database/hourly_demand.csv'),sep=';', encoding = "UTF-8")
 hd.df
 # annual_demand
-ad.df <- read.csv(paste0(getwd(),'/Database/annual_demand.csv'),sep=';', encoding = "UTF-8")#, check.names = F)
-names(ad.df) <- iconv(names(ad.df), to = "ASCII//TRANSLIT")
+
+{
+  ad.df <- read.csv(paste0(getwd(),'/Database/annual_demand.csv'),sep=';', encoding = "UTF-8")
+  # names(ad.df) <- iconv(names(ad.df), to = "latin1")
+  # ad.df$Secteur <- iconv(ad.df$Secteur, to = "ASCII//TRANSLIT")
+}
 
 # hourly_weather
-hw.df <- read.csv(paste0(getwd(),'/Database/hourly_weather.csv'),sep=';', encoding = "UTF-8")#, check.names = F)
-names(hw.df) <- iconv(names(hw.df), to = "ASCII", sub = "")
+{
+  hw.df <- read.csv(paste0(getwd(),'/Database/hourly_weather.csv'),sep=';', encoding = "UTF-8")
+  # names(hw.df) <- iconv(names(hw.df), to = "ASCII//TRANSLIT", sub = "")
+}
 
+hd.df
+ad.df
+hw.df
 #-----
 # Validations 
 nrow(hd.df) == nrow(hw.df)
@@ -35,6 +44,7 @@ nrow(ad.df)
 
 plot(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."],type='l')
 hd.df[hd.df$Total.Energy.Use.from.Electricity..MW. == min(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."]) & hd.df$Hour==1, ] 
+
 
 hd.df[hd.df$Date == '15-août-03' | hd.df$Date == '14-août-03',]
 
