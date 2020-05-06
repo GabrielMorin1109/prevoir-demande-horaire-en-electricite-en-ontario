@@ -1,5 +1,7 @@
 options(java.parameters = "-Xmx8000m") #afin de donner plus de heap space a java
 # Library
+
+
 {
   list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod",
                 "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate")
@@ -12,6 +14,7 @@ options(java.parameters = "-Xmx8000m") #afin de donner plus de heap space a java
 #####################################################################################################################################################################
 
 # Dowload des bases de donnees
+
 # hourly_demand
 hd.df <- read.csv(paste0(getwd(),'/Database/hourly_demand.csv'),sep=';', encoding = "UTF-8")
 # annual_demand
@@ -29,11 +32,16 @@ hw.df <- read.csv(paste0(getwd(),'/Database/hourly_weather.csv'),sep=';', encodi
 
 
 # Validations 
-nrow(hourly_demand) == nrow(hourly_weather)
-nrow(hourly_demand)
-nrow(annual_demand)
+nrow(hd.df) == nrow(hw.df)
+nrow(hd.df)
+nrow(ad.df)
 
-plot(hourly_demand[hourly_demand$Hour==1,"Total.Energy.Use.from.Electricity..MW."],type='l')
-hourly_demand[hourly_demand$Total.Energy.Use.from.Electricity..MW. == min(hourly_demand[hourly_demand$Hour==1,"Total.Energy.Use.from.Electricity..MW."]) & hourly_demand$Hour==1, ] 
 
-hourly_demand[hourly_demand$Date == '15-août-03' | hourly_demand$Date == '14-août-03',]
+
+plot(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."],type='l')
+hd.df[hd.df$Total.Energy.Use.from.Electricity..MW. == min(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."]) & hd.df$Hour==1, ] 
+
+
+hd.df[hd.df$Date == '15-août-03' | hd.df$Date == '14-août-03',]
+
+annual_demand
