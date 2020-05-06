@@ -15,7 +15,7 @@ options(java.parameters = "-Xmx8000m") #afin de donner plus de heap space a java
 
 # Dowload des bases de donnees
 # hourly_demand
-hd.df <- read.csv(paste0(getwd(),'/Database/hourly_demand.csv'),sep=';', encoding = "UTF-8")#, check.names = F)
+hd.df <- read.csv(paste0(getwd(),'/Database/hourly_demand.csv'),sep=';', encoding = "UTF-8")
 hd.df
 # annual_demand
 ad.df <- read.csv(paste0(getwd(),'/Database/annual_demand.csv'),sep=';', encoding = "UTF-8")#, check.names = F)
