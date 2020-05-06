@@ -1,26 +1,18 @@
 
 library(openxlsx)
 library(usethis)
-# install.packages("openxlsx", dependencies = TRUE)
 
-allo test bonjour
-print(testing)
-
-print(bonjour)
-
-
-library(tmaptools)
-
-jhgkads
-
-
-# Saluuuut - Mathilde
-
-asdfghj
-salut
-
-
-print("hello world from X")
-
-
+# Dowload des bases de donnees
 getwd()
+
+hourly_demand <- read.csv(paste(getwd(),'/Database/hourly_demand.csv',sep=''),sep=';')
+hourly_demand
+
+annual_demand <- read.csv(paste(getwd(),'/Database/annual_demand.csv',sep=''),sep=';')
+annual_demand
+
+hourly_weather <- read.csv(paste(getwd(),'/Database/hourly_weather.csv',sep=''),sep=';')
+hourly_weather
+
+# Validations 
+nrow(hourly_demand) == nrow(hourly_weather)
