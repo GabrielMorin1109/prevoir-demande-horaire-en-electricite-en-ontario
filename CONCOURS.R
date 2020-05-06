@@ -2,6 +2,7 @@
 library(openxlsx)
 library(usethis)
 # install.packages("openxlsx", dependencies = TRUE)
+allo test bonjour
 print(testing)
 
 library(tmaptools)
