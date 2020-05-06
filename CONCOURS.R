@@ -33,6 +33,8 @@ nrow(hd.df) == nrow(hw.df)
 nrow(hd.df)
 nrow(ad.df)
 
+
+
 plot(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."],type='l')
 hd.df[hd.df$Total.Energy.Use.from.Electricity..MW. == min(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."]) & hd.df$Hour==1, ] 
 
