@@ -14,26 +14,14 @@ options(java.parameters = "-Xmx8000m") #afin de donner plus de heap space a java
 #####################################################################################################################################################################
 
 # Dowload des bases de donnees
+
 # hourly_demand
 hd.df <- read.csv(paste0(getwd(),'/Database/hourly_demand.csv'),sep=';', encoding = "UTF-8")
-hd.df
 # annual_demand
-
-{
-  ad.df <- read.csv(paste0(getwd(),'/Database/annual_demand.csv'),sep=';', encoding = "UTF-8")
-  # names(ad.df) <- iconv(names(ad.df), to = "latin1")
-  # ad.df$Secteur <- iconv(ad.df$Secteur, to = "ASCII//TRANSLIT")
-}
-
+ad.df <- read.csv(paste0(getwd(),'/Database/annual_demand.csv'),sep=';', encoding = "UTF-8")
 # hourly_weather
-{
-  hw.df <- read.csv(paste0(getwd(),'/Database/hourly_weather.csv'),sep=';', encoding = "UTF-8")
-  # names(hw.df) <- iconv(names(hw.df), to = "ASCII//TRANSLIT", sub = "")
-}
+hw.df <- read.csv(paste0(getwd(),'/Database/hourly_weather.csv'),sep=';', encoding = "UTF-8")
 
-hd.df
-ad.df
-hw.df
 #-----
 # Validations 
 nrow(hd.df) == nrow(hw.df)
