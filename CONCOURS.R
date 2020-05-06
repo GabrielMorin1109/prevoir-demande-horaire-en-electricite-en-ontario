@@ -6,7 +6,7 @@ library(usethis)
 allo test bonjour
 print(testing)
 
-print(testings)
+print(bonjour)
 
 
 library(tmaptools)
