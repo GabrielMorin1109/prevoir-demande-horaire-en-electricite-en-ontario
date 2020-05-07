@@ -11,7 +11,6 @@ options(java.parameters = "-Xmx8000m") #afin de donner plus de heap space a java
 #####################################################################################################################################################################
 #####################################################################################################################################################################
 # Dowload des bases de donnees
-
 # hourly_demand
 hd.df <- read.csv(paste0(getwd(),'/Database/hourly_demand.csv'),sep=';', encoding = "UTF-8")
 str(hd.df)
@@ -26,9 +25,7 @@ str(w.df)
 
 # arrangement des dates
 hd.df$Date.s <- paste(hd.df$Date, hd.df$Hour, sep = " ") %>% ymd_h()
-
-
-# as.numeric(gsub(",", "", y))
+str(hd.df)
 
 # arrangement des variables numerique
 { # pour demand
@@ -40,11 +37,7 @@ hd.df$Date.s <- paste(hd.df$Date, hd.df$Hour, sep = " ") %>% ymd_h()
   w.df[,2:ncol(w.df)] <-  # correction des variables numeriques avec des "," en var num avec des "."
     sapply(w.df[,2:ncol(w.df)], function(my.df){as.numeric(gsub(",", ".", my.df))})
 }
-# as.numeric(levels(ad.df[,"Consommation.electricite.totale..PJ."]))[ad.df[,"Consommation.electricite.totale..PJ."]]
-
-
-
-# as.character(levels(ad.df$Secteur))[ad.df$Secteur]
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Validations 
 nrow(hd.df) == nrow(w.df)
 nrow(hd.df)
