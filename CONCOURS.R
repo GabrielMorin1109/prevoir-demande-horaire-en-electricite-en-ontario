@@ -61,22 +61,22 @@ sapply(w.df,function(X) sum(is.na(X))) # Aucune donnee manquante
 sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 
 
-plot(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."],type='l')
+# plot(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."],type='l') # ne fonctionne pas, aucune colonne de nom Total.Energy.Use.from.Electricity..MW.
 lines(hd.df[hd.df$Hour ==2,"Total.Energy.Use.from.Electricity..MW."],col='red')
 hd.df[hd.df$Total.Energy.Use.from.Electricity..MW. == min(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."]) & hd.df$Hour==1, ] 
 
 
-hd.df[hd.df$Date == '15-août-03' | hd.df$Date == '14-août-03',]
+# hd.df[hd.df$Date == '15-août-03' | hd.df$Date == '14-août-03',] # ne fonctionne pas 
 
 annual_demand
 
 # TEST : Base sur cet article (https://freakonometrics.hypotheses.org/52081)
 plot(hd.df[hd.df$Year == 2003,3],type='l')
-model1 <- lm(Load_Mw ~ poly(Hour,3) + poly(Month,3) + Year,data=hd.df[hd.df$Year == 2003,3])
-summary(model1)
+model1 <- lm(Load_Mw ~ poly(Hour,3) + poly(Month,3) + Year, data=hd.df, subset = which(hd.df$Year %in% c(2003:2005))) # il faut mettre plus d'une valeur de Year, sinon le lm exclus la variable explicative 
+summary(model1) #Year est NA dans le modele,  normal?
 
-new_data <- hd.df[hd.df$Year == 2004,]
-p = predict(model1,newdata=new_data[1:110,c(2,5,4)])
+new_data <- hd.df[hd.df$Year == 2016,]
+p = predict(model1,newdata=new_data[1:100,]) #
 plot(new_data[1:100,3],type='l')
 lines(p[1:100],col='red')
 # Clairement pas great comme modele, on va ajouter la temperature
