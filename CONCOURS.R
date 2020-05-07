@@ -28,26 +28,17 @@ str(w.df)
 hd.df$Date.s <- paste(hd.df$Date, hd.df$Hour, sep = " ") %>% ymd_h()
 
 
-
 # as.numeric(gsub(",", "", y))
 
 # arrangement des variables numerique
 { # pour demand
-  ad.df$Secteur <- as.character(levels(ad.df$Secteur))[ad.df$Secteur] # on enleve la variable secteur de type levels, car elle ne doit pas etre considerer dans le apply.
-  ad.df[,ad.df %>% dplyr::select_if(is.factor) %>% colnames] <-  # correction des variables numeriques avec des "," en var num avec des "."
-    apply(ad.df %>% dplyr::select_if(is.factor), c(1,2), function(my.df){
-      as.numeric(gsub(",", ".", my.df))
-    })
-  ad.df$Secteur <- as.factor(ad.df$Secteur) # retour de la variable a une variable factorielle
+  ad.df[,3:ncol(ad.df)] <-  # correction des variables numeriques avec des "," en var num avec des "."
+    sapply(ad.df[,3:ncol(ad.df)], function(my.df){as.numeric(gsub(",", ".", my.df))})
 }
 
 { # de meme pour le weather
-  w.df$Date <- as.character(levels(w.df$Date))[w.df$Date]
-  w.df[,w.df %>% dplyr::select_if(is.factor) %>% colnames] <-  # correction des variables numeriques avec des "," en var num avec des "."
-    apply(w.df %>% dplyr::select_if(is.factor), c(1,2), function(my.df){
-      as.numeric(gsub(",", ".", my.df))
-    })
-  w.df$Date <- as.factor(w.df$Date) # retour de la variable a une variable factorielle
+  w.df[,2:ncol(w.df)] <-  # correction des variables numeriques avec des "," en var num avec des "."
+    sapply(w.df[,2:ncol(w.df)], function(my.df){as.numeric(gsub(",", ".", my.df))})
 }
 # as.numeric(levels(ad.df[,"Consommation.electricite.totale..PJ."]))[ad.df[,"Consommation.electricite.totale..PJ."]]
 
@@ -69,3 +60,5 @@ hd.df[hd.df$Total.Energy.Use.from.Electricity..MW. == min(hd.df[hd.df$Hour==1,"T
 hd.df[hd.df$Date == '15-août-03' | hd.df$Date == '14-août-03',]
 
 annual_demand
+
+
