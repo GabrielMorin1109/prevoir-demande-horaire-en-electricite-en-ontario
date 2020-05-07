@@ -15,9 +15,11 @@ options(java.parameters = "-Xmx8000m") #afin de donner plus de heap space a java
 # hourly_demand
 hd.df <- read.csv(paste0(getwd(),'/Database/hourly_demand.csv'),sep=';', encoding = "UTF-8")
 str(hd.df)
+colnames(hd.df) <- c('Date','Hour','Load_Mw','Year','Month')
 # annual_demand
 ad.df <- read.csv(paste0(getwd(),'/Database/annual_demand.csv'),sep=';', encoding = "UTF-8"); ad.df$Secteur <- ad.df$Secteur %>% as.factor()
 str(ad.df)
+colnames(ad.df) <- c('Year','Secteur','Load_PJ','locaux','eau','electro','eclairage','refroidissement')
 
 # hourly_weather
 w.df <- read.csv(paste0(getwd(),'/Database/hourly_weather.csv'),sep=';', encoding = "UTF-8")
@@ -50,6 +52,10 @@ nrow(hd.df) == nrow(w.df)
 nrow(hd.df)
 nrow(ad.df)
 
+# Donnees manquantes
+sapply(hd.df,function(X) sum(is.na(X))) # Aucune donnee manquante
+sapply(w.df,function(X) sum(is.na(X))) # Aucune donnee manquante
+sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 
 
 plot(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."],type='l')
@@ -61,4 +67,33 @@ hd.df[hd.df$Date == '15-août-03' | hd.df$Date == '14-août-03',]
 
 annual_demand
 
+# TEST : Base sur cet article (https://freakonometrics.hypotheses.org/52081)
+plot(hd.df[hd.df$Year == 2003,3],type='l')
+model1 <- lm(Load_Mw ~ poly(Hour,3) + poly(Month,3) + Year,data=hd.df[hd.df$Year == 2003,3])
+summary(model1)
+
+new_data <- hd.df[hd.df$Year == 2004,]
+p = predict(model1,newdata=new_data[1:110,c(2,5,4)])
+plot(new_data[1:100,3],type='l')
+lines(p[1:100],col='red')
+# Clairement pas great comme modele, on va ajouter la temperature
+
+class(hd.df$Date.s)
+class(w.df$Date)
+w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm()
+
+hour.df <- left_join(hd.df,w.df,c('Date.s'='Date.s')) # On va merge les 2 df par heure pour faciliter les modeles
+hour.df <- hour.df[,-which(colnames(hour.df) =='Date.y')]
+
+plot(x=hour.df$temperature,y=hour.df$Load_Mw)
+
+model.2 <- lm(Load_Mw ~ poly(Hour,3) + poly(Month,3) + Year + bs(temperature),data=hour.df[hour.df$Year == 2003,]) 
+# j'ai mis bs pour la temperature pcq poly ne marchait pas
+summary(model.2)
+
+new_data <- hour.df[hour.df$Year == 2004,]
+p = predict(model.2,newdata=new_data[1:110,c(2,5,4,8)])
+plot(new_data[1:100,3],type='l')
+lines(p[1:100],col='red')
+# Deja beaucoup mieux
 
