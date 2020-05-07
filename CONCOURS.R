@@ -49,60 +49,43 @@ str(hd.df)
   w.df[,2:ncol(w.df)] <-  # correction des variables numeriques avec des "," en var num avec des "."
     sapply(w.df[,2:ncol(w.df)], function(my.df){as.numeric(gsub(",", ".", my.df))})
 }
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Arrangement des doublons PAS FINI >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm()
+w.df <- w.df[,!colnames(w.df) %in% "Date"] # pour ne pas creer de confusion entre les bases de donnees
+                                  identical(length(w.df$Date.s), length(unique(w.df$Date.s))) # On remarque des doublons
+n_occur <- data.frame(table(w.df$Date.s)) %>%
+  {.[.$Freq > 1,]}
+n_occur$Var1 <- n_occur$Var1 %>% as.character %>% ymd_hms()
+to_change <- which(w.df$Date.s %in% n_occur$Var1 == T)
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # MERGE des bases de donnees weather et demande aux heures
-w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm()
-w.df <- w.df[,!colnames(w.df) %in% "Date"] # pour ne pas creer de confusion entre les bases de donnees
+
 #  on remarque que les bases de donnees ont des differences:
 list(w.df.dif = which(!(hd.df$Date.s %in% w.df$Date.s)) %>% hd.df$Date.s[.],
      hd.df.dif = which(!(w.df$Date.s %in% hd.df$Date.s)) %>% w.df$Date.s[.])
 # Ainsi, on fait l'union des deux bases de donnees avec all=T —— idk si left_join ne le faisait pas, pour verifier : identical(merge(hd.df, w.df, by = "Date.s", all=T), left_join(hd.df,w.df,by = 'Date.s'))
 hour.df <- merge(hd.df, w.df, by = "Date.s", all.x=T)  # On va merge les 2 df par heure pour faciliter les modeles
-# On retire les donnees ou Load_Mw est NA
-hour.df <- hour.df[!is.na(hour.df$Load_Mw),]
-
+              # On retire les donnees ou Load_Mw est NA
+              # hour.df <- hour.df[!is.na(hour.df$Load_Mw),]
+              # is.na(hour.df) %>% any
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# Proportion de la consommation d'electricite par le Residentiel PAS FINI >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Proportion de la consommation d'electricite par le Residentiel 
 {
   ad.ls <- split(ad.df, ad.df$Year)
   sum.year.conso <- purrr::map(ad.ls, ~.x$Load_PJ %>% sum)
-  prop.conso.df <- 
+  prop.conso.ls <- 
     purrr::map2(ad.ls, sum.year.conso,
                 ~sapply(1:nrow(.x),function(i){
                   .x$Load_PJ[i]/.y
-                  })
+                  }) %>% 
+                  {cbind(.x, proportion.conso = .)}
                 )
-  
-  
-  #%>% reduce(c) %>%
-    tibble(proportion.consommation.e= .,
-           # Year = names(ad.ls),
-           Secteur = "Residentiel"
-           )
-  prop.conso.df
-  mutate_all(ad.df, prop.conso.df, by="Secteur",all.x=T)
-  # ad.df$proportion.consommation.e <- if(ad.df$Secteur =="Residentiel")
-}; prop.conso
-lapply(seq_along(ad.ls),function(i){
-  apply(ad.ls[[i]], function(ad.ls.irow){
-    var.tmp <- rep(0;1:unique(ad.ls.irow$Secteur)
-    if(ad.ls.irow$Secteur %in% "Residentiel"){
-      cbind(.xi, proportion.consommation = .y)
-    } else {cbind(.x, proportion.consommation = 0)}
-  })
-})
-
-
-map2(ad.ls, prop.conso,
-     ~sapply(.x, function(.xi){
-       if(.xi$Secteur %in% "Residentiel"){
-         cbind(.xi, proportion.consommation = .y)
-       } else {cbind(.x, proportion.consommation = 0)}
-     })
-)
-
-# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  prop.conso.df <- prop.conso.ls %>% reduce(rbind)
+}
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 
