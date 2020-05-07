@@ -52,12 +52,8 @@ hd.df$Date.s <- paste(hd.df$Date, hd.df$Hour, sep = " ") %>% ymd_h()
 # as.numeric(levels(ad.df[,"Consommation.electricite.totale..PJ."]))[ad.df[,"Consommation.electricite.totale..PJ."]]
 
 
-<<<<<<< HEAD
 
-as.character(levels(ad.df$Secteur))[ad.df$Secteur]
-=======
 # as.character(levels(ad.df$Secteur))[ad.df$Secteur]
->>>>>>> 4398aa63bc17b1374cd27510340243178401d5aa
 # Validations 
 nrow(hd.df) == nrow(w.df)
 nrow(hd.df)
