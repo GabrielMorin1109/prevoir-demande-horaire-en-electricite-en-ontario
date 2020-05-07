@@ -2,7 +2,7 @@
 # Library
 {
   list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod",
-                "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate",
+                "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table",
                 "opera", #package arthur
                 "keras",
                 'tree', # pour faire des arbres
@@ -36,6 +36,8 @@ colnames(ad.df) <- c('Year','Secteur','Load_PJ','locaux','eau','electro','eclair
 w.df <- read.csv(paste0(getwd(),'/Database/hourly_weather.csv'),sep=';', encoding = "UTF-8")
 str(w.df)
 #-----
+w.df[c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date))),]
+
 
 # arrangement des dates
 hd.df$Date.s <- paste(hd.df$Date, hd.df$Hour, sep = " ") %>% ymd_h()
@@ -51,7 +53,56 @@ str(hd.df)
   w.df[,2:ncol(w.df)] <-  # correction des variables numeriques avec des "," en var num avec des "."
     sapply(w.df[,2:ncol(w.df)], function(my.df){as.numeric(gsub(",", ".", my.df))})
 }
+
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# MERGE des bases de donnees weather et demande aux heures
+w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm()
+w.df <- w.df[,!colnames(w.df) %in% "Date"] # pour ne pas creer de confusion entre les bases de donnees
+#  on remarque que les bases de donnees ont des differences:
+list(w.df.dif = which(!(hd.df$Date.s %in% w.df$Date.s)) %>% hd.df$Date.s[.],
+     hd.df.dif = which(!(w.df$Date.s %in% hd.df$Date.s)) %>% w.df$Date.s[.])
+# Ainsi, on fait l'union des deux bases de donnees avec all=T —— idk si left_join ne le faisait pas, pour verifier : identical(merge(hd.df, w.df, by = "Date.s", all=T), left_join(hd.df,w.df,by = 'Date.s'))
+hour.df <- merge(hd.df, w.df, by = "Date.s", all.x=T)# On va merge les 2 df par heure pour faciliter les modeles
+# On retire les donnees ou Load_Mw est NA
+hour.df <- hour.df[!is.na(hour.df$Load_Mw),]
+
+
+
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Proportion de la consommation d'electricite par le Residentiel PAS FINI >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+{
+  ad.ls <- split(ad.df, ad.df$Year)
+  prop.conso.df <- purrr::map(ad.ls, ~.x$Load_PJ[.x$Secteur == "Residentiel"]/sum(.x$Load_PJ[!(.x$Secteur %in% "Residentiel")])) %>% reduce(c) %>% 
+    tibble(proportion.consommation.e= .,
+           # Year = names(ad.ls),
+           Secteur = "Residentiel"
+           )
+  prop.conso.df
+  mutate_all(ad.df, prop.conso.df, by="Secteur",all.x=T)
+  # ad.df$proportion.consommation.e <- if(ad.df$Secteur =="Residentiel")
+}; prop.conso
+lapply(seq_along(ad.ls),function(i.ls){
+  apply(.x, 1, function(.xi){
+    if(.xi$Secteur %in% "Residentiel"){
+      cbind(.xi, proportion.consommation = .y)
+    } else {cbind(.x, proportion.consommation = 0)}
+  })
+})
+
+
+map2(ad.ls, prop.conso,
+     ~sapply(.x, function(.xi){
+       if(.xi$Secteur %in% "Residentiel"){
+         cbind(.xi, proportion.consommation = .y)
+       } else {cbind(.x, proportion.consommation = 0)}
+     })
+)
+
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
+
+# PREANALYSE: ----
 # Validations 
 nrow(hd.df) == nrow(w.df)
 nrow(hd.df)
@@ -63,14 +114,14 @@ sapply(w.df,function(X) sum(is.na(X))) # Aucune donnee manquante
 sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 
 
-plot(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."],type='l')
-lines(hd.df[hd.df$Hour ==2,"Total.Energy.Use.from.Electricity..MW."],col='red')
+# plot(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."],type='l') # ne fonctionne pas, aucune colonne de nom Total.Energy.Use.from.Electricity..MW.
+# lines(hd.df[hd.df$Hour ==2,"Total.Energy.Use.from.Electricity..MW."],col='red')
 hd.df[hd.df$Total.Energy.Use.from.Electricity..MW. == min(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."]) & hd.df$Hour==1, ] 
 
 
-hd.df[hd.df$Date == '15-août-03' | hd.df$Date == '14-août-03',]
+# hd.df[hd.df$Date == '15-août-03' | hd.df$Date == '14-août-03',] # ne fonctionne pas 
 
-annual_demand
+
 
 # ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # M O D E L E S
@@ -82,22 +133,23 @@ train_max <- 0.7*nrow(hour.df)
 # Modele 1 : Base sur cet article (https://freakonometrics.hypotheses.org/52081)
 
 plot(hd.df[hd.df$Year == 2003,3],type='l')
-model1 <- lm(Load_Mw ~ poly(Hour,3) + poly(Month,3) + Year,data=hd.df[hd.df$Year == 2003,3])
-summary(model1)
+model1 <- lm(Load_Mw ~ poly(Hour,3) + poly(Month,3) + Year, data=hd.df, subset = which(hd.df$Year %in% c(2003:2005))) # il faut mettre plus d'une valeur de Year, sinon le lm exclus la variable explicative 
+summary(model1) #Year est NA dans le modele,  normal?
 
-new_data <- hd.df[hd.df$Year == 2004,]
-p = predict(model1,newdata=new_data[1:110,c(2,5,4)])
+new_data <- hd.df[hd.df$Year == 2016,]
+p = predict(model1,newdata=new_data[1:100,]) #
 plot(new_data[1:100,3],type='l')
 lines(p[1:100],col='red')
 # Clairement pas great comme modele, on va ajouter la temperature
+
 
 # Modele 2 : Ajout de la temperature
 class(hd.df$Date.s)
 class(w.df$Date)
 w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm()
 
-hour.df <- left_join(hd.df,w.df,by = c('Date.s'='Date.s')) # On va merge les 2 df par heure pour faciliter les modeles
-hour.df <- hour.df[,-which(colnames(hour.df) =='Date.y')]
+
+
 
 plot(x=hour.df$temperature,y=hour.df$Load_Mw)
 
@@ -143,7 +195,7 @@ MSE <- mean((pred-hour.df.test[,'Load_Mw'])^2) # Immense MSE
 sqrt(MSE) # Les predictions sont around 1978 Mw de la vraie valeur
 
 # Modele 4 : Premier essaie de random forest
-model4 <- randomForest(Load_Mw~.,data=hour.df,subset=train,mtry=13,importance=T)
-tesss <- na.exclude(hour.df)
+model4 <- randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,mtry=13,importance=T)
+
 
 
