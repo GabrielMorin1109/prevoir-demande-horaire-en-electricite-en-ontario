@@ -27,6 +27,8 @@ hw.df <- read.csv(paste0(getwd(),'/Database/hourly_weather.csv'),sep=';', encodi
 # arrangement des dates
 hd.df$Date.s <- paste(hd.df$Date, hd.df$Hour, sep = " ") %>% ymd_h()
 
+hd.df$Date.s %>% month()
+hd.df$Date.s %>% year()
 
 # Validations 
 nrow(hd.df) == nrow(hw.df)
