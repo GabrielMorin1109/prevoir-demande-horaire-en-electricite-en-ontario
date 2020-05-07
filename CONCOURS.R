@@ -2,7 +2,9 @@ options(java.parameters = "-Xmx8000m") #afin de donner plus de heap space a java
 # Library
 {
   list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod",
-                "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate")
+                "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate",
+                "opera", #package arthur
+                )
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages) > 0) {install.packages(new.packages, dependencies = T, quiet =T, repos='https://cran.rstudio.com/')}
   for(package_name in list.of.packages) {library(package_name,character.only=TRUE, quietly = TRUE)}
