@@ -50,6 +50,22 @@ str(hd.df)
     sapply(w.df[,2:ncol(w.df)], function(my.df){as.numeric(gsub(",", ".", my.df))})
 }
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# MERGE des bases de donnees
+w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm()
+w.df <- w.df[,!colnames(w.df) %in% "Date"]
+w.df %>% nrow()
+hd.df %>% nrow()
+#  on remarque que les bases de donnees ont des differences:
+list( 
+  w.df.dif = which(!(hd.df$Date.s %in% w.df$Date.s)) %>% hd.df$Date.s[.],
+  hd.df.dif = which(!(w.df$Date.s %in% hd.df$Date.s)) %>% w.df$Date.s[.]
+)
+# Ainsi, on fait l'union des deux bases de donnees avec all=T —— idk si left_join ne le faisait pas, pour verifier : identical(merge(hd.df, w.df, by = "Date.s", all=T), left_join(hd.df,w.df,by = 'Date.s'))
+hour.df <- merge(hd.df, w.df, by = "Date.s", all=T)  # On va merge les 2 df par heure pour faciliter les modeles
+# hour.df <- hour.df[,-which(colnames(hour.df) =='Date.y')] # il faut concerver les difference entre les bases de donnees
+
+# PREANALYSE: ----
 # Validations 
 nrow(hd.df) == nrow(w.df)
 nrow(hd.df)
@@ -62,13 +78,13 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 
 
 # plot(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."],type='l') # ne fonctionne pas, aucune colonne de nom Total.Energy.Use.from.Electricity..MW.
-lines(hd.df[hd.df$Hour ==2,"Total.Energy.Use.from.Electricity..MW."],col='red')
+# lines(hd.df[hd.df$Hour ==2,"Total.Energy.Use.from.Electricity..MW."],col='red')
 hd.df[hd.df$Total.Energy.Use.from.Electricity..MW. == min(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."]) & hd.df$Hour==1, ] 
 
 
 # hd.df[hd.df$Date == '15-août-03' | hd.df$Date == '14-août-03',] # ne fonctionne pas 
 
-annual_demand
+
 
 # TEST : Base sur cet article (https://freakonometrics.hypotheses.org/52081)
 plot(hd.df[hd.df$Year == 2003,3],type='l')
@@ -81,12 +97,8 @@ plot(new_data[1:100,3],type='l')
 lines(p[1:100],col='red')
 # Clairement pas great comme modele, on va ajouter la temperature
 
-class(hd.df$Date.s)
-class(w.df$Date)
-w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm()
 
-hour.df <- left_join(hd.df,w.df,by = c('Date.s'='Date.s')) # On va merge les 2 df par heure pour faciliter les modeles
-hour.df <- hour.df[,-which(colnames(hour.df) =='Date.y')]
+
 
 plot(x=hour.df$temperature,y=hour.df$Load_Mw)
 
