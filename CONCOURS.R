@@ -1,7 +1,5 @@
 options(java.parameters = "-Xmx8000m") #afin de donner plus de heap space a java
 # Library
-
-
 {
   list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod",
                 "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate")
@@ -48,10 +46,10 @@ hd.df$Date.s <- paste(hd.df$Date, hd.df$Hour, sep = " ") %>% ymd_h()
     })
   w.df$Date <- as.factor(w.df$Date) # retour de la variable a une variable factorielle
 }
-as.numeric(levels(ad.df[,"Consommation.electricite.totale..PJ."]))[ad.df[,"Consommation.electricite.totale..PJ."]]
+# as.numeric(levels(ad.df[,"Consommation.electricite.totale..PJ."]))[ad.df[,"Consommation.electricite.totale..PJ."]]
 
 
-as.character(levels(ad.df$Secteur))[ad.df$Secteur]
+# as.character(levels(ad.df$Secteur))[ad.df$Secteur]
 # Validations 
 nrow(hd.df) == nrow(w.df)
 nrow(hd.df)
