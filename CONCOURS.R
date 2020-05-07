@@ -2,9 +2,9 @@
 # Library
 {
   list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod",
-                "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate",
+                "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table",
                 "opera", #package arthur
-                "keras"
+                "keras" #package KNN
                 )
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages) > 0) {install.packages(new.packages, dependencies = T, quiet =T, repos='https://cran.rstudio.com/')}
@@ -49,21 +49,52 @@ str(hd.df)
   w.df[,2:ncol(w.df)] <-  # correction des variables numeriques avec des "," en var num avec des "."
     sapply(w.df[,2:ncol(w.df)], function(my.df){as.numeric(gsub(",", ".", my.df))})
 }
-# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-# MERGE des bases de donnees
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# MERGE des bases de donnees weather et demande aux heures
 w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm()
-w.df <- w.df[,!colnames(w.df) %in% "Date"]
-w.df %>% nrow()
-hd.df %>% nrow()
+w.df <- w.df[,!colnames(w.df) %in% "Date"] # pour ne pas creer de confusion entre les bases de donnees
 #  on remarque que les bases de donnees ont des differences:
-list( 
-  w.df.dif = which(!(hd.df$Date.s %in% w.df$Date.s)) %>% hd.df$Date.s[.],
-  hd.df.dif = which(!(w.df$Date.s %in% hd.df$Date.s)) %>% w.df$Date.s[.]
-)
+list(w.df.dif = which(!(hd.df$Date.s %in% w.df$Date.s)) %>% hd.df$Date.s[.],
+     hd.df.dif = which(!(w.df$Date.s %in% hd.df$Date.s)) %>% w.df$Date.s[.])
 # Ainsi, on fait l'union des deux bases de donnees avec all=T —— idk si left_join ne le faisait pas, pour verifier : identical(merge(hd.df, w.df, by = "Date.s", all=T), left_join(hd.df,w.df,by = 'Date.s'))
 hour.df <- merge(hd.df, w.df, by = "Date.s", all=T)  # On va merge les 2 df par heure pour faciliter les modeles
-# hour.df <- hour.df[,-which(colnames(hour.df) =='Date.y')] # il faut concerver les difference entre les bases de donnees
+# On retire les donnees ou Load_Mw est NA
+hour.df <- hour.df[!is.na(hour.df$Load_Mw),]
+
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Proportion de la consommation d'electricite par le Residentiel PAS FINI >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+{
+  ad.ls <- split(ad.df, ad.df$Year)
+  prop.conso.df <- purrr::map(ad.ls, ~.x$Load_PJ[.x$Secteur == "Residentiel"]/sum(.x$Load_PJ[!(.x$Secteur %in% "Residentiel")])) %>% reduce(c) %>% 
+    tibble(proportion.consommation.e= .,
+           # Year = names(ad.ls),
+           Secteur = "Residentiel"
+           )
+  prop.conso.df
+  mutate_all(ad.df, prop.conso.df, by="Secteur",all.x=T)
+  # ad.df$proportion.consommation.e <- if(ad.df$Secteur =="Residentiel")
+}; prop.conso
+lapply(seq_along(ad.ls),function(i.ls){
+  apply(.x, 1, function(.xi){
+    if(.xi$Secteur %in% "Residentiel"){
+      cbind(.xi, proportion.consommation = .y)
+    } else {cbind(.x, proportion.consommation = 0)}
+  })
+})
+
+
+map2(ad.ls, prop.conso,
+     ~sapply(.x, function(.xi){
+       if(.xi$Secteur %in% "Residentiel"){
+         cbind(.xi, proportion.consommation = .y)
+       } else {cbind(.x, proportion.consommation = 0)}
+     })
+)
+
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
 
 # PREANALYSE: ----
 # Validations 
