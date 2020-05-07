@@ -58,7 +58,7 @@ w.df <- w.df[,!colnames(w.df) %in% "Date"] # pour ne pas creer de confusion entr
 list(w.df.dif = which(!(hd.df$Date.s %in% w.df$Date.s)) %>% hd.df$Date.s[.],
      hd.df.dif = which(!(w.df$Date.s %in% hd.df$Date.s)) %>% w.df$Date.s[.])
 # Ainsi, on fait l'union des deux bases de donnees avec all=T —— idk si left_join ne le faisait pas, pour verifier : identical(merge(hd.df, w.df, by = "Date.s", all=T), left_join(hd.df,w.df,by = 'Date.s'))
-hour.df <- merge(hd.df, w.df, by = "Date.s", all=T)  # On va merge les 2 df par heure pour faciliter les modeles
+hour.df <- merge(hd.df, w.df, by = "Date.s", all.x=T)  # On va merge les 2 df par heure pour faciliter les modeles
 # On retire les donnees ou Load_Mw est NA
 hour.df <- hour.df[!is.na(hour.df$Load_Mw),]
 
@@ -66,7 +66,16 @@ hour.df <- hour.df[!is.na(hour.df$Load_Mw),]
 # Proportion de la consommation d'electricite par le Residentiel PAS FINI >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 {
   ad.ls <- split(ad.df, ad.df$Year)
-  prop.conso.df <- purrr::map(ad.ls, ~.x$Load_PJ[.x$Secteur == "Residentiel"]/sum(.x$Load_PJ[!(.x$Secteur %in% "Residentiel")])) %>% reduce(c) %>% 
+  sum.year.conso <- purrr::map(ad.ls, ~.x$Load_PJ %>% sum)
+  prop.conso.df <- 
+    purrr::map2(ad.ls, sum.year.conso,
+                ~sapply(1:nrow(.x),function(i){
+                  .x$Load_PJ[i]/.y
+                  })
+                )
+  
+  
+  #%>% reduce(c) %>%
     tibble(proportion.consommation.e= .,
            # Year = names(ad.ls),
            Secteur = "Residentiel"
@@ -75,9 +84,10 @@ hour.df <- hour.df[!is.na(hour.df$Load_Mw),]
   mutate_all(ad.df, prop.conso.df, by="Secteur",all.x=T)
   # ad.df$proportion.consommation.e <- if(ad.df$Secteur =="Residentiel")
 }; prop.conso
-lapply(seq_along(ad.ls),function(i.ls){
-  apply(.x, 1, function(.xi){
-    if(.xi$Secteur %in% "Residentiel"){
+lapply(seq_along(ad.ls),function(i){
+  apply(ad.ls[[i]], function(ad.ls.irow){
+    var.tmp <- rep(0;1:unique(ad.ls.irow$Secteur)
+    if(ad.ls.irow$Secteur %in% "Residentiel"){
       cbind(.xi, proportion.consommation = .y)
     } else {cbind(.x, proportion.consommation = 0)}
   })
