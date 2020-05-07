@@ -13,6 +13,12 @@ options(java.parameters = "-Xmx8000m") #afin de donner plus de heap space a java
 #####################################################################################################################################################################
 #####################################################################################################################################################################
 #####################################################################################################################################################################
+# DOCCUMENTATION PERTINENTE
+# proportion de la consommation en énergie par secteur: https://www.cer-rec.gc.ca/nrg/ntgrtd/mrkt/nrgsstmprfls/on-eng.html
+#####################################################################################################################################################################
+#####################################################################################################################################################################
+#####################################################################################################################################################################
+
 # Dowload des bases de donnees
 # hourly_demand
 hd.df <- read.csv(paste0(getwd(),'/Database/hourly_demand.csv'),sep=';', encoding = "UTF-8")
@@ -78,7 +84,7 @@ class(hd.df$Date.s)
 class(w.df$Date)
 w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm()
 
-hour.df <- left_join(hd.df,w.df,c('Date.s'='Date.s')) # On va merge les 2 df par heure pour faciliter les modeles
+hour.df <- left_join(hd.df,w.df,by = c('Date.s'='Date.s')) # On va merge les 2 df par heure pour faciliter les modeles
 hour.df <- hour.df[,-which(colnames(hour.df) =='Date.y')]
 
 plot(x=hour.df$temperature,y=hour.df$Load_Mw)
