@@ -4,7 +4,7 @@
   list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod",
                 "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table",
                 "opera", #package arthur
-                "keras",
+                "keras", # info sur son utilisation: https://www.datacamp.com/community/tutorials/keras-r-deep-learning
                 'tree', # pour faire des arbres
                 'randomForest'
                 )
@@ -60,11 +60,16 @@ w.dup.df[order(c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date)))),]
 
 w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm()
 w.df <- w.df[,!colnames(w.df) %in% "Date"] # pour ne pas creer de confusion entre les bases de donnees
-                                  identical(length(w.df$Date.s), length(unique(w.df$Date.s))) # On remarque des doublons
-n_occur <- data.frame(table(w.df$Date.s)) %>%
-  {.[.$Freq > 1,]}
-n_occur$Var1 <- n_occur$Var1 %>% as.character %>% ymd_hms()
-to_change <- which(w.df$Date.s %in% n_occur$Var1 == T)
+w.df <- aggregate(w.df, by = list(w.df$Date.s), mean)
+
+identical(length(w.df$Date.s), length(unique(w.df$Date.s))) # All work!!
+# n_occur <- data.frame(table(w.df$Date.s)) %>%
+#   {.[.$Freq > 1,]}
+# n_occur$Var1 <- n_occur$Var1 %>% as.character %>% ymd_hms()
+# n_occur$Freq <- n_occur$Freq %>% cumsum
+# to_change <- which((w.df$Date.s %in% n_occur$Var1) == T)
+# to_change[1:last(to_change)] %>% list()
+# seq(first(to_change), last(to_change))
 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -75,9 +80,9 @@ list(w.df.dif = which(!(hd.df$Date.s %in% w.df$Date.s)) %>% hd.df$Date.s[.],
      hd.df.dif = which(!(w.df$Date.s %in% hd.df$Date.s)) %>% w.df$Date.s[.])
 # Ainsi, on fait l'union des deux bases de donnees avec all=T —— idk si left_join ne le faisait pas, pour verifier : identical(merge(hd.df, w.df, by = "Date.s", all=T), left_join(hd.df,w.df,by = 'Date.s'))
 hour.df <- merge(hd.df, w.df, by = "Date.s", all.x=T)  # On va merge les 2 df par heure pour faciliter les modeles
-              # On retire les donnees ou Load_Mw est NA
-              # hour.df <- hour.df[!is.na(hour.df$Load_Mw),]
-              # is.na(hour.df) %>% any
+which(is.na(hour.df)) %>% hour.df[.,]
+# On retire les donnees ou Load_Mw est NA
+hour.df <- hour.df[!is.na(hour.df$Load_Mw),]
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Proportion de la consommation d'electricite par le Residentiel 
@@ -91,13 +96,14 @@ hour.df <- merge(hd.df, w.df, by = "Date.s", all.x=T)  # On va merge les 2 df pa
                   }) %>% 
                   {cbind(.x, proportion.conso = .)}
                 )
-  prop.conso.df <- prop.conso.ls %>% reduce(rbind)
+  ad.p.df <- prop.conso.ls %>% reduce(rbind)
 }
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Mesure s'il y a une constance dans la serie (aka, une non croissance p/r au temps)
 
 
-
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # PREANALYSE: ----
 # Validations 
 nrow(hd.df) == nrow(w.df)
