@@ -36,11 +36,11 @@ colnames(ad.df) <- c('Year','Secteur','Load_PJ','locaux','eau','electro','eclair
 w.df <- read.csv(paste0(getwd(),'/Database/hourly_weather.csv'),sep=';', encoding = "UTF-8")
 str(w.df)
 #-----
-
+w.df[c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date))),]
 
 
 # arrangement des dates
-hd.df$Date.s <- paste(hd.df$Date, hd.df$Hour-1, sep = " ") %>% ymd_h()
+hd.df$Date.s <- paste(hd.df$Date, hd.df$Hour, sep = " ") %>% ymd_h()
 str(hd.df)
 
 # arrangement des variables numerique
@@ -55,9 +55,6 @@ str(hd.df)
 }
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Arrangement des doublons PAS FINI >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-w.dup.df <- w.df[c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date))),]
-w.dup.df[order(c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date)))),]
-
 w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm()
 w.df <- w.df[,!colnames(w.df) %in% "Date"] # pour ne pas creer de confusion entre les bases de donnees
 w.df <- aggregate(w.df, by = list(w.df$Date.s), mean)
@@ -73,7 +70,7 @@ identical(length(w.df$Date.s), length(unique(w.df$Date.s))) # All work!!
 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# MERGE des bases de donnees weather et demande aux heures
+# MERGE des bases de donnees weather et demande aux heures 
 
 #  on remarque que les bases de donnees ont des differences:
 list(w.df.dif = which(!(hd.df$Date.s %in% w.df$Date.s)) %>% hd.df$Date.s[.],
@@ -98,7 +95,6 @@ hour.df <- hour.df[!is.na(hour.df$Load_Mw),]
                 )
   ad.p.df <- prop.conso.ls %>% reduce(rbind)
 }
-
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Visualisation d'une serie
 acf(hour.df$Load_Mw) 
