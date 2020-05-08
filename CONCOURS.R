@@ -37,11 +37,11 @@ colnames(ad.df) <- c('Year','Secteur','Load_PJ','locaux','eau','electro','eclair
 w.df <- read.csv(paste0(getwd(),'/Database/hourly_weather.csv'),sep=';', encoding = "UTF-8")
 str(w.df)
 #-----
-
+w.df[c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date))),]
 
 
 # arrangement des dates
-hd.df$Date.s <- paste(hd.df$Date, hd.df$Hour-1, sep = " ") %>% ymd_h()
+hd.df$Date.s <- paste(hd.df$Date, hd.df$Hour, sep = " ") %>% ymd_h()
 str(hd.df)
 
 # arrangement des variables numerique
@@ -56,6 +56,7 @@ str(hd.df)
 }
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Arrangement des doublons PAS FINI >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
 w.dup.df <- w.df[c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date))),]
 w.dup.df <- w.dup.df[order(c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date)))),]
 
@@ -81,7 +82,7 @@ identical(length(w.df$Date.s), length(unique(w.df$Date.s))) # All work!!
 # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# MERGE des bases de donnees weather et demande aux heures
+# MERGE des bases de donnees weather et demande aux heures 
 
 #  on remarque que les bases de donnees ont des differences:
 list(w.df.dif = which(!(hd.df$Date.s %in% w.df$Date.s)) %>% hd.df$Date.s[.],
@@ -111,11 +112,21 @@ sum(is.na(hour.df))
                 )
   ad.p.df <- prop.conso.ls %>% reduce(rbind)
 }
-
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Visualisation d'une serie
+acf(hour.df$Load_Mw) 
+
 # Mesure s'il y a une constance dans la serie (aka, une non croissance p/r au temps)
+# plot(lm(Load_Mw~Date.s, data = hour.df))# %>% summary()
+{plot(hour.df$Date.s, hour.df$Load_Mw,pch='.')
+lm.fit <- lm(Load_Mw~Date.s, data = hour.df)
+p.lm <- lm.fit %>% predict(se.fit = T) 
+seq(min(hour.df$Date.s), max(hour.df$Date.s), by = "hour") %>% lines(., p.lm$fit, col="red")
+# title()
+legend('topright', legend = paste0(c("pente : ", as.character(lm.fit$coefficients["Date.s"]))), bty = 'n')
+lm.fit %>% summary()}
 
-
+# Donc, decroissance relativement faible ici, mais significative.
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # PREANALYSE: ----
 # Validations 
