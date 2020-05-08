@@ -6,7 +6,8 @@
                 "opera", #package arthur
                 "keras", # info sur son utilisation: https://www.datacamp.com/community/tutorials/keras-r-deep-learning
                 'tree', # pour faire des arbres
-                'randomForest'
+                'randomForest', 
+                'doParallel'
                 )
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages) > 0) {install.packages(new.packages, dependencies = T, quiet =T, repos='https://cran.rstudio.com/')}
@@ -56,13 +57,20 @@ str(hd.df)
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Arrangement des doublons PAS FINI >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 w.dup.df <- w.df[c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date))),]
-w.dup.df[order(c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date)))),]
+w.dup.df <- w.dup.df[order(c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date)))),]
 
 w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm()
 w.df <- w.df[,!colnames(w.df) %in% "Date"] # pour ne pas creer de confusion entre les bases de donnees
 w.df <- aggregate(w.df, by = list(w.df$Date.s), mean)
 
 identical(length(w.df$Date.s), length(unique(w.df$Date.s))) # All work!!
+
+# un peu de validation
+{
+  mean(w.dup.df[c(1,2),2]) == w.df[as.numeric(rownames(w.dup.df))[1],2] # OK
+}
+
+  
 # n_occur <- data.frame(table(w.df$Date.s)) %>%
 #   {.[.$Freq > 1,]}
 # n_occur$Var1 <- n_occur$Var1 %>% as.character %>% ymd_hms()
@@ -80,9 +88,14 @@ list(w.df.dif = which(!(hd.df$Date.s %in% w.df$Date.s)) %>% hd.df$Date.s[.],
      hd.df.dif = which(!(w.df$Date.s %in% hd.df$Date.s)) %>% w.df$Date.s[.])
 # Ainsi, on fait l'union des deux bases de donnees avec all=T —— idk si left_join ne le faisait pas, pour verifier : identical(merge(hd.df, w.df, by = "Date.s", all=T), left_join(hd.df,w.df,by = 'Date.s'))
 hour.df <- merge(hd.df, w.df, by = "Date.s", all.x=T)  # On va merge les 2 df par heure pour faciliter les modeles
-which(is.na(hour.df)) %>% hour.df[.,]
-# On retire les donnees ou Load_Mw est NA
-hour.df <- hour.df[!is.na(hour.df$Load_Mw),]
+
+identical(length(unique(hd.df$Date.s)),nrow(hd.df))
+identical(length(unique(w.df$Date.s)),nrow(w.df))
+nrow(hd.df) - nrow(w.df) # Je m'attend a 14 NA dans le merge
+length(which(is.na(hour.df$temperature))) # En effet, il y a 14 NA dans la temperature, enlevons ces lignes
+hour.df <- hour.df[which(!is.na(hour.df$temperature)),]
+sum(is.na(hour.df))
+
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Proportion de la consommation d'electricite par le Residentiel 
@@ -114,7 +127,7 @@ nrow(ad.df)
 sapply(hd.df,function(X) sum(is.na(X))) # Aucune donnee manquante
 sapply(w.df,function(X) sum(is.na(X))) # Aucune donnee manquante
 sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
-
+sapply(hour.df,function(X) sum(is.na(X)))
 
 # plot(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."],type='l') # ne fonctionne pas, aucune colonne de nom Total.Energy.Use.from.Electricity..MW.
 # lines(hd.df[hd.df$Hour ==2,"Total.Energy.Use.from.Electricity..MW."],col='red')
@@ -146,12 +159,6 @@ lines(p[1:100],col='red')
 
 
 # Modele 2 : Ajout de la temperature
-class(hd.df$Date.s)
-class(w.df$Date)
-w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm()
-
-
-
 
 plot(x=hour.df$temperature,y=hour.df$Load_Mw)
 
@@ -160,8 +167,8 @@ model2 <- lm(Load_Mw ~ poly(Hour,3) + poly(Month,3) + Year + bs(temperature),dat
 summary(model2)
 
 new_data <- hour.df[hour.df$Year == 2016,]
-p = predict(model2,newdata=new_data[1:110,c(2,5,4,8)])
-plot(new_data[1:100,3],type='l')
+p = predict(model2,newdata=new_data[1:110,c('Hour','Month','Year','temperature')])
+plot(new_data[1:100,4],type='l')
 lines(p[1:100],col='red')
 # Deja beaucoup mieux
 
@@ -175,7 +182,7 @@ plot(model3)
 text(model3,pretty=0)
 
 pred <- predict(model3,hour.df.test)
-plot(hour.df.test[1:100,3],type='l')
+plot(hour.df.test[1:100,4],type='l')
 lines(pred[1:100],col='red')
 
 # On va essayer de prune l'arbre pour avoir des meilleurs resultats
@@ -197,7 +204,44 @@ MSE <- mean((pred-hour.df.test[,'Load_Mw'])^2) # Immense MSE
 sqrt(MSE) # Les predictions sont around 1978 Mw de la vraie valeur
 
 # Modele 4 : Premier essaie de random forest
-model4 <- randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,mtry=13,importance=T)
+
+#model4 <- randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,mtry=13,importance=T)
+#randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,importance=T)
+
+mini.df <- hour.df[train,c('Hour','Year','Load_Mw','temperature','profondeur_neige','densite_air')]
+
+model4 <- randomForest(Load_Mw ~ .,data=mini.df)
+summary(model4)
+importance(model4)
+
+new_data <- hour.df[-train,c('Hour','Year','Load_Mw','temperature','profondeur_neige','densite_air')]
+pred.rf <- predict(model4,newdata=new_data)
+MSE.rf <- mean((pred.rf-mini.df$Load_Mw)^2) # Encore immense...
+sqrt(MSE)
+varImpPlot(model4)
+
+plot(new_data[300:400,'Load_Mw'],type='l')
+lines(pred.rf[300:400],col='red')
+# Not bad!!
+
+# Modele 5 : Essayons de rouler une random forest en parallel pour voir ce que ca donne quand on la laisse decider des variables
+cores <- 6
+cl <- makeCluster(cores)
+registerDoParallel(cores)
+getDoParWorkers() # Just checking, how many workers you have
+
+model5 <- randomForest(Load_Mw~.,data=hour.df,subset=train,importance=T)
+importance(model5) # On remarque beaucoup de redondance, genre surement pas besoin de Date.s, Date, Hour, Year, Month, Group.1... je vais faire une base cleaner lundi
+# Je pensais que la random forest utiliserait juste les variables pertinentes comme le tree l'avais fait, mais on dirait pas finalement...
+pred.rf.2 <- predict(model5,newdata=hour.df[-train,])
+MSE.rf.2 <- mean((pred.rf.2-hour.df[-train,'Load_Mw'])^2)
+sqrt(MSE.rf.2) # Considerablement plus petit que ce qu'on a eu jusqu'a present!
+
+new_data <- hour.df[-train,]
+plot(new_data[1:100,'Load_Mw'],type='l')
+lines(pred.rf.2[1:100],col='red')
+
+stopCluster(cl)
 
 
 
