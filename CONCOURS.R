@@ -96,9 +96,20 @@ hour.df <- hour.df[!is.na(hour.df$Load_Mw),]
   ad.p.df <- prop.conso.ls %>% reduce(rbind)
 }
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Visualisation d'une serie
+acf(hour.df$Load_Mw) 
+
 # Mesure s'il y a une constance dans la serie (aka, une non croissance p/r au temps)
+# plot(lm(Load_Mw~Date.s, data = hour.df))# %>% summary()
+{plot(hour.df$Date.s, hour.df$Load_Mw,pch='.')
+lm.fit <- lm(Load_Mw~Date.s, data = hour.df)
+p.lm <- lm.fit %>% predict(se.fit = T) 
+seq(min(hour.df$Date.s), max(hour.df$Date.s), by = "hour") %>% lines(., p.lm$fit, col="red")
+# title()
+legend('topright', legend = paste0(c("pente : ", as.character(lm.fit$coefficients["Date.s"]))), bty = 'n')
+lm.fit %>% summary()}
 
-
+# Donc, decroissance relativement faible ici, mais significative.
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # PREANALYSE: ----
 # Validations 
