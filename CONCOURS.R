@@ -4,7 +4,7 @@
   list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod",
                 "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table",
                 "opera", #package arthur
-                "keras",
+                "keras", # info sur son utilisation: https://www.datacamp.com/community/tutorials/keras-r-deep-learning
                 'tree', # pour faire des arbres
                 'randomForest'
                 )
