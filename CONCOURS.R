@@ -7,7 +7,8 @@
                 "keras", # info sur son utilisation: https://www.datacamp.com/community/tutorials/keras-r-deep-learning
                 'tree', # pour faire des arbres
                 'randomForest', 
-                'doParallel'
+                'doParallel',
+                'timeDate'
                 )
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages) > 0) {install.packages(new.packages, dependencies = T, quiet =T, repos='https://cran.rstudio.com/')}
@@ -253,6 +254,34 @@ plot(new_data[1:100,'Load_Mw'],type='l')
 lines(pred.rf.2[1:100],col='red')
 
 stopCluster(cl)
+
+
+# Modele 6 : Random Forest mais avec une base de donnee clean
+hour.df
+clean.df <- hour.df
+clean.df$Day <- day(clean.df$Date.s)
+clean.df <- clean.df[,c(1,5,6,16,3,4,8,9,10,11,12,13,14,15)]
+
+for(i in 1:nrow(clean.df)){
+  clean.df[i,'Weekend'] <- if(clean.df[i,'Year'] == 2003 & clean.df[i,'Month'] == 1 & clean.df[i,'Day'] == 4 | clean.df[i,'Year'] == 2003 & clean.df[i,'Month'] == 1 & clean.df[i,'Day'] == 5){1}else{0}
+}
+
+for(i in 169:nrow(clean.df)){
+  clean.df[i,'Weekend'] <- if(clean.df[i-168,'Weekend']==1){1}else{0}
+}
+
+for(i in 1:nrow(clean.df)){
+  if(isWeekend(clean.df[i,'Date.s'])){1}else{0}
+}
+
+
+
+View(clean.df[1:2000,])
+
+
+model6 <- randomForest(Load_Mw~.,data=clea.df,subset=train,importance=T)
+
+#ts(hour.df$Load_Mw,start=hour.df[1,'Date.s'],frequency=1,ts.eps = getOption("ts.eps"))
 
 
 
