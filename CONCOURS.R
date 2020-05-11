@@ -196,8 +196,47 @@ abline(0,1)
 MSE <- mean((pred-hour.df.test[,'Load_Mw'])^2) # Immense MSE
 sqrt(MSE) # Les predictions sont around 1978 Mw de la vraie valeur
 
-# Modele 4 : Premier essaie de random forest ----
-model4 <- randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,mtry=13,importance=T)
+
+# Modele 4 : Premier essaie de random forest
+
+#model4 <- randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,mtry=13,importance=T)
+#randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,importance=T)
+
+mini.df <- hour.df[train,c('Hour','Year','Load_Mw','temperature','profondeur_neige','densite_air')]
+
+model4 <- randomForest(Load_Mw ~ .,data=mini.df)
+summary(model4)
+importance(model4)
+
+new_data <- hour.df[-train,c('Hour','Year','Load_Mw','temperature','profondeur_neige','densite_air')]
+pred.rf <- predict(model4,newdata=new_data)
+MSE.rf <- mean((pred.rf-mini.df$Load_Mw)^2) # Encore immense...
+sqrt(MSE)
+varImpPlot(model4)
+
+plot(new_data[300:400,'Load_Mw'],type='l')
+lines(pred.rf[300:400],col='red')
+# Not bad!!
+
+# Modele 5 : Essayons de rouler une random forest en parallel pour voir ce que ca donne quand on la laisse decider des variables
+cores <- 6
+cl <- makeCluster(cores)
+registerDoParallel(cores)
+getDoParWorkers() # Just checking, how many workers you have
+
+model5 <- randomForest(Load_Mw~.,data=hour.df,subset=train,importance=T)
+importance(model5) # On remarque beaucoup de redondance, genre surement pas besoin de Date.s, Date, Hour, Year, Month, Group.1... je vais faire une base cleaner lundi
+# Je pensais que la random forest utiliserait juste les variables pertinentes comme le tree l'avais fait, mais on dirait pas finalement...
+pred.rf.2 <- predict(model5,newdata=hour.df[-train,])
+MSE.rf.2 <- mean((pred.rf.2-hour.df[-train,'Load_Mw'])^2)
+sqrt(MSE.rf.2) # Considerablement plus petit que ce qu'on a eu jusqu'a present!
+
+new_data <- hour.df[-train,]
+plot(new_data[1:100,'Load_Mw'],type='l')
+lines(pred.rf.2[1:100],col='red')
+
+stopCluster(cl)
+
 
 # Modele 6 : Random Forest mais avec une base de donnee clean
 hour.df
@@ -226,6 +265,7 @@ View(clean.df[1:2000,])
 model6 <- randomForest(Load_Mw~.,data=clea.df,subset=train,importance=T)
 
 #ts(hour.df$Load_Mw,start=hour.df[1,'Date.s'],frequency=1,ts.eps = getOption("ts.eps"))
+
 
 
 
