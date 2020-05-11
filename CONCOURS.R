@@ -78,7 +78,7 @@ which(is.na(hour.I.df)) %>% hour.I.df[.,]
 hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %in% c("Date", "Group.1")])
 # hour.I.df$Date.s <- force_tz(hour.I.df$Date.s,"America/Toronto")
 
-
+sum(is.na(hour.I.df))
 
 
 
@@ -142,6 +142,7 @@ x.interval <- seq(min(hour.df$Date.s), max(hour.df$Date.s), by = "hour")
 abline(lm.fit, col = "red")
 legend('topright', legend = paste0(c("pente : ", as.character(lm.fit$coefficients["Date.s"]))), bty = 'n')
 lm.fit %>% summary()}
+
 
 # Donc, decroissance relativement faible ici, mais significative.
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -284,9 +285,7 @@ stopCluster(cl)
 hour.df
 clean.df <- hour.df
 clean.df$Day <- day(clean.df$Date.s)
-clean.df <- clean.df[,c(1,5,6,16,3,4,8,9,10,11,12,13,14,15)]
-
-wday(hour.df[1,1])
+clean.df$weekday <- wday(clean.df$Date.s)
 
 #for(i in 1:nrow(clean.df)){
 #  clean.df[i,'Weekend'] <- if(clean.df[i,'Year'] == 2003 & clean.df[i,'Month'] == 1 & clean.df[i,'Day'] == 4 | clean.df[i,'Year'] == 2003 & clean.df[i,'Month'] == 1 & clean.df[i,'Day'] == 5){1}else{0}
@@ -298,7 +297,7 @@ wday(hour.df[1,1])
 
 for(i in 1:nrow(clean.df)){
   clean.df[i,'Weekend'] <- if(isWeekend(clean.df[i,'Date.s'])[[1]]){1}else{0}
-  clean.df[i,'Weekday'] <- wday(clean.df[i,'Date.s'])
+  #clean.df[i,'Weekday'] <- wday(clean.df[i,'Date.s'])
   #clean.df[i,'Holiday'] <- if(isHoliday(clean.df[i,'Date.s'])[[1]]){1}else{0}
 }
 
@@ -324,16 +323,31 @@ MSE.rf.3 <- mean((pred.rf.3-clean.df[-train,'Load_Mw'])^2)
 sqrt(MSE.rf.3) # Considerablement plus petit que ce qu'on a eu jusqu'a present!
 
 new_data <- clean.df[-train,]
-plot(new_data[1:1000,'Load_Mw'],type='l')
-lines(pred.rf.3[1:1000],col='red')
+plot(new_data[1:100,'Load_Mw'],type='l')
+lines(pred.rf.3[1:100],col='red')
 
 
-hour.ts <- ts(hour.df,
-   start=hour.df[1,'Date.s'],
-   end = hour.df[nrow(hour.df),'Date.s'],
-   frequency=365*24)
+#TESTS
+clean.test.ts <- ts(clean.df,start=c(2003,1),end=c(2016,12),freq=24*365.5)
+cores <- 6
+cl <- makeCluster(cores)
+registerDoParallel(cores)
+getDoParWorkers() # Just checking, how many workers you have
 
-frequency(hour.df$Date.s)
+model7 <- randomForest(Load_Mw~.,data=clean.test.ts,subset=train,importance=T,ntree=500)
+
+stopCluster(cl)
+
+importance(model7)
+pred.rf.3 <- predict(model7,newdata=clean.test.ts[-train,])
+MSE.rf.3 <- mean((pred.rf.3-clean.test.ts[-train,'Load_Mw'])^2)
+sqrt(MSE.rf.3) # Plus haut qu'avec le data.frame
+
+new_data <- clean.test.ts[-train,]
+plot(new_data[1:100,'Load_Mw'],type='l')
+lines(pred.rf.3[1:100],col='red')
+
+
 
 # Modele 6.gm, bestglm ----
 {hour.y.df <- hour.df
