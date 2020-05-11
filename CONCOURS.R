@@ -3,6 +3,7 @@
 {
   list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod",
                 "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table", "bestglm",
+                "xts", "forecast", "tseries", # for time series object
                 "opera", #package arthur
                 "keras", # info sur son utilisation: https://www.datacamp.com/community/tutorials/keras-r-deep-learning
                 'tree', # pour faire des arbres
@@ -42,7 +43,7 @@ w.df[c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date))),]
 
 
 # arrangement des dates
-hd.df$Date.s <- paste(hd.df$Date, hd.df$Hour, sep = " ") %>% ymd_h()
+hd.df$Date.s <- paste(hd.df$Date, hd.df$Hour, sep = " ") %>% paste0(., ":00") %>% ymd_hm()
 str(hd.df)
 
 # arrangement des variables numerique
@@ -58,6 +59,7 @@ str(hd.df)
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Arrangement des doublons 
 w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm()
+# which(is.na(w.df$Date.s))
 w.df <- w.df[,!colnames(w.df) %in% "Date"] # pour ne pas creer de confusion entre les bases de donnees
 w.df <- aggregate(w.df, by = list(w.df$Date.s), mean)
 
@@ -68,11 +70,33 @@ identical(length(w.df$Date.s), length(unique(w.df$Date.s))) # All work!!
 list(w.df.dif = which(!(hd.df$Date.s %in% w.df$Date.s)) %>% hd.df$Date.s[.],
      hd.df.dif = which(!(w.df$Date.s %in% hd.df$Date.s)) %>% w.df$Date.s[.])
 # Ainsi, on fait l'union des deux bases de donnees avec all=T —— idk si left_join ne le faisait pas, pour verifier : identical(merge(hd.df, w.df, by = "Date.s", all=T), left_join(hd.df,w.df,by = 'Date.s'))
-hour.df <- merge(hd.df, w.df, by = "Date.s", all.x=T)  # On va merge les 2 df par heure pour faciliter les modeles
-which(is.na(hour.df)) %>% hour.df[.,]
+hour.I.df <- merge(hd.df, w.df, by = "Date.s", all.x=T)  # On va merge les 2 df par heure pour faciliter les modeles
+which(is.na(hour.I.df)) %>% hour.I.df[.,]
 # On retire les donnees ou Load_Mw est NA
-hour.df <- hour.df[!is.na(hour.df$Load_Mw),]
+hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %in% c("Date", "Group.1")])
+# hour.I.df$Date.s <- force_tz(hour.I.df$Date.s,"America/Toronto")
 
+
+
+
+
+# ###
+# hour_Mw.ts <- ts(hour.I.df$Load_Mw,
+#               start= c(2003,1,1),#decimal_date(ymd_hms("2003-01-01 01:00:00")), #hour.I.df[1,'Date.s']
+#               end = c(2016,12,31),#decimal_date(ymd_hms("2016-12-31 23:00:00")), # hour.I.df[nrow(hour.I.df),'Date.s']),
+#               frequency=24)
+# time(hour_Mw.ts)
+# hour_Mw.stl <- stl(hour_Mw.ts, s.window = "period")
+# # adf.test(diff(hour_Mw.ts), alternative="stationary", k=0) # on rejette l'hypothese null que la tim serie est stationnaire
+# 
+# 
+# plot(hour_Mw.stl)  # top=original data, second=estimated seasonal, third=estimated smooth trend, bottom=estimated irregular element i.e. unaccounted for variation
+# monthplot(hour_Mw.stl, choice = "seasonal")  # variation in milk production for each month
+# seasonplot(hour_Mw.ts)
+# # fit <- arima(hour_Mw.ts, order=c(p, d, q))
+# 
+# hour.xts <- xts(hour.I.df, order.by = hour.I.df$Date.s)
+# HoltWinters(hour_Mw.ts, beta=FALSE, gamma = FALSE) %>% plot()
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Proportion de la consommation d'electricite par le Residentiel 
 {
@@ -87,9 +111,25 @@ hour.df <- hour.df[!is.na(hour.df$Load_Mw),]
                 )
   ad.p.df <- prop.conso.ls %>% reduce(rbind)
 }
+{
+  hour.ls <- hour.I.df %>% split(year(hour.I.df$Date.s))
+  hour.df <- lapply(names(hour.ls), function(my.year){
+    tmp <- hour.ls[[my.year]]
+    tmp$Load_Mw <- 
+      tmp$Load_Mw * ad.p.df[ad.p.df$Secteur == "Residentiel",] %>% 
+      {.[.$Year == as.numeric(my.year),!colnames(.) %in% c("Year", "Secteur")]} %>%  #/ nrow(hour.ls[[my.year]])}
+      {.[,"proportion.conso"]}
+    tmp
+                                          # cbind(hour.ls[[my.year]], 
+                                          #       ad.p.df[ad.p.df$Secteur == "Residentiel",] %>% 
+                                          #         {.[.$Year == as.numeric(my.year),!colnames(.) %in% c("Year", "Secteur")]} %>%  #/ nrow(hour.ls[[my.year]])}
+                                          #         {.[,"proportion.conso"]}
+                                          #       )
+  }) %>% reduce(bind_rows)
+}
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Visualisation d'une serie
-acf(hour.df$Load_Mw) 
+acf(hour.df$Load_Mw)
 # on remarque que l'ossiation est constante dans les annees. Ainsi, on peut predire sur tout les annees a partir d'aujourd'hui : https://www.r-bloggers.com/time-series-deep-learning-forecasting-sunspots-with-keras-stateful-lstm-in-r/
 
 # Mesure s'il y a une constance dans la serie (aka, une non croissance p/r au temps)
@@ -264,18 +304,18 @@ View(clean.df[1:2000,])
 
 model6 <- randomForest(Load_Mw~.,data=clea.df,subset=train,importance=T)
 
-#ts(hour.df$Load_Mw,start=hour.df[1,'Date.s'],frequency=1,ts.eps = getOption("ts.eps"))
+hour.ts <- ts(hour.df,
+   start=hour.df[1,'Date.s'],
+   end = hour.df[nrow(hour.df),'Date.s'],
+   frequency=365*24)
 
-
-
+frequency(hour.df$Date.s)
 
 # Modele 6.gm, bestglm ----
 {hour.y.df <- hour.df
 hour.y.df$y <- hour.y.df$Load_Mw
-hour.y.df <- hour.y.df[,!colnames(hour.y.df) %in% c("Load_Mw",
-                                                    "Date",
-                                                    "Group.1"
-                                                    )]
+hour.y.df <- hour.y.df[,!colnames(hour.y.df) %in% c("Load_Mw")]
 }
-best.hour.y.df <- bestglm(Xy = hour.y.df, IC = "AIC", method = "exhaustive")
+hour.y.df %>% str()
+best.hour.y.df <- bestglm(Xy = hour.y.df, family = exponential, IC = "AIC", method = "exhaustive")
 
