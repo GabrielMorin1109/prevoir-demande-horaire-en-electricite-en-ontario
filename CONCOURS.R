@@ -2,7 +2,7 @@
 # Library
 {
   list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod",
-                "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table",
+                "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table", "bestglm",
                 "opera", #package arthur
                 "keras", # info sur son utilisation: https://www.datacamp.com/community/tutorials/keras-r-deep-learning
                 'tree', # pour faire des arbres
@@ -56,48 +56,22 @@ str(hd.df)
     sapply(w.df[,2:ncol(w.df)], function(my.df){as.numeric(gsub(",", ".", my.df))})
 }
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# Arrangement des doublons PAS FINI >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-w.dup.df <- w.df[c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date))),]
-w.dup.df <- w.dup.df[order(c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date)))),]
-
+# Arrangement des doublons 
 w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm()
 w.df <- w.df[,!colnames(w.df) %in% "Date"] # pour ne pas creer de confusion entre les bases de donnees
 w.df <- aggregate(w.df, by = list(w.df$Date.s), mean)
 
 identical(length(w.df$Date.s), length(unique(w.df$Date.s))) # All work!!
-
-# un peu de validation
-{
-  mean(w.dup.df[c(1,2),2]) == w.df[as.numeric(rownames(w.dup.df))[1],2] # OK
-}
-
-  
-# n_occur <- data.frame(table(w.df$Date.s)) %>%
-#   {.[.$Freq > 1,]}
-# n_occur$Var1 <- n_occur$Var1 %>% as.character %>% ymd_hms()
-# n_occur$Freq <- n_occur$Freq %>% cumsum
-# to_change <- which((w.df$Date.s %in% n_occur$Var1) == T)
-# to_change[1:last(to_change)] %>% list()
-# seq(first(to_change), last(to_change))
-# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # MERGE des bases de donnees weather et demande aux heures 
-
 #  on remarque que les bases de donnees ont des differences:
 list(w.df.dif = which(!(hd.df$Date.s %in% w.df$Date.s)) %>% hd.df$Date.s[.],
      hd.df.dif = which(!(w.df$Date.s %in% hd.df$Date.s)) %>% w.df$Date.s[.])
 # Ainsi, on fait l'union des deux bases de donnees avec all=T —— idk si left_join ne le faisait pas, pour verifier : identical(merge(hd.df, w.df, by = "Date.s", all=T), left_join(hd.df,w.df,by = 'Date.s'))
 hour.df <- merge(hd.df, w.df, by = "Date.s", all.x=T)  # On va merge les 2 df par heure pour faciliter les modeles
-
-identical(length(unique(hd.df$Date.s)),nrow(hd.df))
-identical(length(unique(w.df$Date.s)),nrow(w.df))
-nrow(hd.df) - nrow(w.df) # Je m'attend a 14 NA dans le merge
-length(which(is.na(hour.df$temperature))) # En effet, il y a 14 NA dans la temperature, enlevons ces lignes
-hour.df <- hour.df[which(!is.na(hour.df$temperature)),]
-sum(is.na(hour.df))
-
+which(is.na(hour.df)) %>% hour.df[.,]
+# On retire les donnees ou Load_Mw est NA
+hour.df <- hour.df[!is.na(hour.df$Load_Mw),]
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Proportion de la consommation d'electricite par le Residentiel 
@@ -116,14 +90,14 @@ sum(is.na(hour.df))
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Visualisation d'une serie
 acf(hour.df$Load_Mw) 
+# on remarque que l'ossiation est constante dans les annees. Ainsi, on peut predire sur tout les annees a partir d'aujourd'hui : https://www.r-bloggers.com/time-series-deep-learning-forecasting-sunspots-with-keras-stateful-lstm-in-r/
 
 # Mesure s'il y a une constance dans la serie (aka, une non croissance p/r au temps)
 # plot(lm(Load_Mw~Date.s, data = hour.df))# %>% summary()
 {plot(hour.df$Date.s, hour.df$Load_Mw,pch='.')
 lm.fit <- lm(Load_Mw~Date.s, data = hour.df)
-p.lm <- lm.fit %>% predict(se.fit = T) 
-seq(min(hour.df$Date.s), max(hour.df$Date.s), by = "hour") %>% lines(., p.lm$fit, col="red")
-# title()
+x.interval <- seq(min(hour.df$Date.s), max(hour.df$Date.s), by = "hour") 
+abline(lm.fit, col = "red")
 legend('topright', legend = paste0(c("pente : ", as.character(lm.fit$coefficients["Date.s"]))), bty = 'n')
 lm.fit %>% summary()}
 
@@ -139,7 +113,7 @@ nrow(ad.df)
 sapply(hd.df,function(X) sum(is.na(X))) # Aucune donnee manquante
 sapply(w.df,function(X) sum(is.na(X))) # Aucune donnee manquante
 sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
-sapply(hour.df,function(X) sum(is.na(X)))
+
 
 # plot(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."],type='l') # ne fonctionne pas, aucune colonne de nom Total.Energy.Use.from.Electricity..MW.
 # lines(hd.df[hd.df$Hour ==2,"Total.Energy.Use.from.Electricity..MW."],col='red')
@@ -154,10 +128,11 @@ hd.df[hd.df$Total.Energy.Use.from.Electricity..MW. == min(hd.df[hd.df$Hour==1,"T
 # M O D E L E S
 
 # On va utiliser 70% des donnees pour le training :
+set.seed(123)
 train_max <- 0.7*nrow(hour.df)
 
 
-# Modele 1 : Base sur cet article (https://freakonometrics.hypotheses.org/52081)
+# Modele 1 : Base sur cet article (https://freakonometrics.hypotheses.org/52081) ----
 
 plot(hd.df[hd.df$Year == 2003,3],type='l')
 model1 <- lm(Load_Mw ~ poly(Hour,3) + poly(Month,3) + Year, data=hd.df, subset = which(hd.df$Year %in% c(2003:2005))) # il faut mettre plus d'une valeur de Year, sinon le lm exclus la variable explicative 
@@ -170,7 +145,13 @@ lines(p[1:100],col='red')
 # Clairement pas great comme modele, on va ajouter la temperature
 
 
-# Modele 2 : Ajout de la temperature
+# Modele 2 : Ajout de la temperature ----
+class(hd.df$Date.s)
+class(w.df$Date)
+# w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm() # pas necessaire, ligne en haut qui fait la meme chose
+
+
+
 
 plot(x=hour.df$temperature,y=hour.df$Load_Mw)
 
@@ -179,12 +160,12 @@ model2 <- lm(Load_Mw ~ poly(Hour,3) + poly(Month,3) + Year + bs(temperature),dat
 summary(model2)
 
 new_data <- hour.df[hour.df$Year == 2016,]
-p = predict(model2,newdata=new_data[1:110,c('Hour','Month','Year','temperature')])
-plot(new_data[1:100,4],type='l')
+p = predict(model2,newdata=new_data[1:110,c(2,5,4,8)])
+plot(new_data[1:100,3],type='l')
 lines(p[1:100],col='red')
 # Deja beaucoup mieux
 
-# Modele 3 : premier essaie pour l'arbre
+# Modele 3 : premier essaie pour l'arbre ----
 train <- 1:train_max
 hour.df.test <- hour.df[-train,]
 
@@ -194,7 +175,7 @@ plot(model3)
 text(model3,pretty=0)
 
 pred <- predict(model3,hour.df.test)
-plot(hour.df.test[1:100,4],type='l')
+plot(hour.df.test[1:100,3],type='l')
 lines(pred[1:100],col='red')
 
 # On va essayer de prune l'arbre pour avoir des meilleurs resultats
@@ -215,46 +196,8 @@ abline(0,1)
 MSE <- mean((pred-hour.df.test[,'Load_Mw'])^2) # Immense MSE
 sqrt(MSE) # Les predictions sont around 1978 Mw de la vraie valeur
 
-# Modele 4 : Premier essaie de random forest
-
-#model4 <- randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,mtry=13,importance=T)
-#randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,importance=T)
-
-mini.df <- hour.df[train,c('Hour','Year','Load_Mw','temperature','profondeur_neige','densite_air')]
-
-model4 <- randomForest(Load_Mw ~ .,data=mini.df)
-summary(model4)
-importance(model4)
-
-new_data <- hour.df[-train,c('Hour','Year','Load_Mw','temperature','profondeur_neige','densite_air')]
-pred.rf <- predict(model4,newdata=new_data)
-MSE.rf <- mean((pred.rf-mini.df$Load_Mw)^2) # Encore immense...
-sqrt(MSE)
-varImpPlot(model4)
-
-plot(new_data[300:400,'Load_Mw'],type='l')
-lines(pred.rf[300:400],col='red')
-# Not bad!!
-
-# Modele 5 : Essayons de rouler une random forest en parallel pour voir ce que ca donne quand on la laisse decider des variables
-cores <- 6
-cl <- makeCluster(cores)
-registerDoParallel(cores)
-getDoParWorkers() # Just checking, how many workers you have
-
-model5 <- randomForest(Load_Mw~.,data=hour.df,subset=train,importance=T)
-importance(model5) # On remarque beaucoup de redondance, genre surement pas besoin de Date.s, Date, Hour, Year, Month, Group.1... je vais faire une base cleaner lundi
-# Je pensais que la random forest utiliserait juste les variables pertinentes comme le tree l'avais fait, mais on dirait pas finalement...
-pred.rf.2 <- predict(model5,newdata=hour.df[-train,])
-MSE.rf.2 <- mean((pred.rf.2-hour.df[-train,'Load_Mw'])^2)
-sqrt(MSE.rf.2) # Considerablement plus petit que ce qu'on a eu jusqu'a present!
-
-new_data <- hour.df[-train,]
-plot(new_data[1:100,'Load_Mw'],type='l')
-lines(pred.rf.2[1:100],col='red')
-
-stopCluster(cl)
-
+# Modele 4 : Premier essaie de random forest ----
+model4 <- randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,mtry=13,importance=T)
 
 # Modele 6 : Random Forest mais avec une base de donnee clean
 hour.df
@@ -286,3 +229,8 @@ model6 <- randomForest(Load_Mw~.,data=clea.df,subset=train,importance=T)
 
 
 
+# Modele 6.gm, bestglm ----
+{hour.y.df <- hour.df
+hour.y.df$y <- hour.y.df$Load_Mw
+hour.y.df <- hour.y.df[,colnames(hour.y.df) %in% "Load_Mw"]}
+best.hour.y.df <- bestglm(Xy = hour.y.df, IC = "AIC", method = "exhaustive")
