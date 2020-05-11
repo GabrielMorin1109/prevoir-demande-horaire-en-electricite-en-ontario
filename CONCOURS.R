@@ -6,13 +6,9 @@
                 "opera", #package arthur
                 "keras", # info sur son utilisation: https://www.datacamp.com/community/tutorials/keras-r-deep-learning
                 'tree', # pour faire des arbres
-<<<<<<< HEAD
-                'randomForest'
-=======
                 'randomForest', 
                 'doParallel',
                 'timeDate'
->>>>>>> b2d793a2b87685e965561db0150dbf5305593006
                 )
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages) > 0) {install.packages(new.packages, dependencies = T, quiet =T, repos='https://cran.rstudio.com/')}
@@ -232,7 +228,7 @@ model6 <- randomForest(Load_Mw~.,data=clea.df,subset=train,importance=T)
 
 
 
-# Modele 6, bestglm ----
+# Modele 6.gm, bestglm ----
 {hour.y.df <- hour.df
 hour.y.df$y <- hour.y.df$Load_Mw
 hour.y.df <- hour.y.df[,colnames(hour.y.df) %in% "Load_Mw"]}
