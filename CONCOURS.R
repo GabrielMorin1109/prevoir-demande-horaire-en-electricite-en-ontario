@@ -8,7 +8,9 @@
                 'tree', # pour faire des arbres
                 'randomForest', 
                 'doParallel',
-                'timeDate'
+                'timeDate',
+                'bestglm',
+                'chron'
                 )
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages) > 0) {install.packages(new.packages, dependencies = T, quiet =T, repos='https://cran.rstudio.com/')}
@@ -244,6 +246,8 @@ clean.df <- hour.df
 clean.df$Day <- day(clean.df$Date.s)
 clean.df <- clean.df[,c(1,5,6,16,3,4,8,9,10,11,12,13,14,15)]
 
+wday(hour.df[1,1])
+
 #for(i in 1:nrow(clean.df)){
 #  clean.df[i,'Weekend'] <- if(clean.df[i,'Year'] == 2003 & clean.df[i,'Month'] == 1 & clean.df[i,'Day'] == 4 | clean.df[i,'Year'] == 2003 & clean.df[i,'Month'] == 1 & clean.df[i,'Day'] == 5){1}else{0}
 #}
@@ -254,8 +258,10 @@ clean.df <- clean.df[,c(1,5,6,16,3,4,8,9,10,11,12,13,14,15)]
 
 for(i in 1:nrow(clean.df)){
   clean.df[i,'Weekend'] <- if(isWeekend(clean.df[i,'Date.s'])[[1]]){1}else{0}
+  clean.df[i,'Weekday'] <- wday(clean.df[i,'Date.s'])
   #clean.df[i,'Holiday'] <- if(isHoliday(clean.df[i,'Date.s'])[[1]]){1}else{0}
 }
+
 
 # Tests de holiday qui n'ont pas marché
   #isHoliday('Canada',as.Date(clean.df[100,'Date.s']))[[1]]
@@ -268,7 +274,7 @@ cl <- makeCluster(cores)
 registerDoParallel(cores)
 getDoParWorkers() # Just checking, how many workers you have
 
-model6 <- randomForest(Load_Mw~.,data=clean.df,subset=train,importance=T,ntree=50)
+model6 <- randomForest(Load_Mw~.,data=clean.df,subset=train,importance=T,ntree=500)
 
 stopCluster(cl)
 
@@ -287,7 +293,6 @@ lines(pred.rf.3[1:1000],col='red')
 
 
 
-
 # Modele 6.gm, bestglm ----
 {hour.y.df <- hour.df
 hour.y.df$y <- hour.y.df$Load_Mw
@@ -297,4 +302,5 @@ hour.y.df <- hour.y.df[,!colnames(hour.y.df) %in% c("Load_Mw",
                                                     )]
 }
 best.hour.y.df <- bestglm(Xy = hour.y.df, IC = "AIC", method = "exhaustive")
+
 
