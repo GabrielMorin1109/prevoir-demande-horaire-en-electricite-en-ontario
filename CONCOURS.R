@@ -284,25 +284,43 @@ clean.df <- hour.df
 clean.df$Day <- day(clean.df$Date.s)
 clean.df <- clean.df[,c(1,5,6,16,3,4,8,9,10,11,12,13,14,15)]
 
+#for(i in 1:nrow(clean.df)){
+#  clean.df[i,'Weekend'] <- if(clean.df[i,'Year'] == 2003 & clean.df[i,'Month'] == 1 & clean.df[i,'Day'] == 4 | clean.df[i,'Year'] == 2003 & clean.df[i,'Month'] == 1 & clean.df[i,'Day'] == 5){1}else{0}
+#}
+
+#for(i in 169:nrow(clean.df)){
+#  clean.df[i,'Weekend'] <- if(clean.df[i-168,'Weekend']==1){1}else{0}
+#}
+
 for(i in 1:nrow(clean.df)){
-  clean.df[i,'Weekend'] <- if(clean.df[i,'Year'] == 2003 & clean.df[i,'Month'] == 1 & clean.df[i,'Day'] == 4 | clean.df[i,'Year'] == 2003 & clean.df[i,'Month'] == 1 & clean.df[i,'Day'] == 5){1}else{0}
+  clean.df[i,'Weekend'] <- if(isWeekend(clean.df[i,'Date.s'])[[1]]){1}else{0}
+  #clean.df[i,'Holiday'] <- if(isHoliday(clean.df[i,'Date.s'])[[1]]){1}else{0}
 }
 
-for(i in 169:nrow(clean.df)){
-  clean.df[i,'Weekend'] <- if(clean.df[i-168,'Weekend']==1){1}else{0}
-}
+# Tests de holiday qui n'ont pas marché
+  #isHoliday('Canada',as.Date(clean.df[100,'Date.s']))[[1]]
+  #isHoliday(x=as.Date(clean.df$Date.s),holidays='Canada/TSX')
 
-for(i in 1:nrow(clean.df)){
-  clean.df[i,'Weekend'] <- if(isWeekend(clean.df[i,'Date.s'])){1}else{0}
-  clean.df[i,'Holiday'] <- if(isHoliday(clean.df[i,'Date.s'])){1}else{0}
-}
+clean.df <- clean.df[-which(colnames(clean.df)=='Date.s'),]
 
+cores <- 6
+cl <- makeCluster(cores)
+registerDoParallel(cores)
+getDoParWorkers() # Just checking, how many workers you have
 
+model6 <- randomForest(Load_Mw~.,data=clean.df,subset=train,importance=T,ntree=50)
 
-View(clean.df[1:2000,])
+stopCluster(cl)
 
+importance(model6)
+pred.rf.3 <- predict(model6,newdata=clean.df[-train,])
+MSE.rf.3 <- mean((pred.rf.3-clean.df[-train,'Load_Mw'])^2)
+sqrt(MSE.rf.3) # Considerablement plus petit que ce qu'on a eu jusqu'a present!
 
-model6 <- randomForest(Load_Mw~.,data=clea.df,subset=train,importance=T)
+new_data <- clean.df[-train,]
+plot(new_data[1:1000,'Load_Mw'],type='l')
+lines(pred.rf.3[1:1000],col='red')
+
 
 hour.ts <- ts(hour.df,
    start=hour.df[1,'Date.s'],
@@ -310,6 +328,7 @@ hour.ts <- ts(hour.df,
    frequency=365*24)
 
 frequency(hour.df$Date.s)
+
 
 # Modele 6.gm, bestglm ----
 {hour.y.df <- hour.df
