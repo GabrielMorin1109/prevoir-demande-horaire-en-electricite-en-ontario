@@ -231,5 +231,10 @@ model6 <- randomForest(Load_Mw~.,data=clea.df,subset=train,importance=T)
 # Modele 6.gm, bestglm ----
 {hour.y.df <- hour.df
 hour.y.df$y <- hour.y.df$Load_Mw
-hour.y.df <- hour.y.df[,colnames(hour.y.df) %in% "Load_Mw"]}
+hour.y.df <- hour.y.df[,!colnames(hour.y.df) %in% c("Load_Mw",
+                                                    "Date",
+                                                    "Group.1"
+                                                    )]
+}
 best.hour.y.df <- bestglm(Xy = hour.y.df, IC = "AIC", method = "exhaustive")
+
