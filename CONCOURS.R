@@ -2,7 +2,7 @@
 # Library
 {
   list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod",
-                "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table",
+                "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table", "bestglm"
                 "opera", #package arthur
                 "keras", # info sur son utilisation: https://www.datacamp.com/community/tutorials/keras-r-deep-learning
                 'tree', # pour faire des arbres
@@ -54,24 +54,14 @@ str(hd.df)
     sapply(w.df[,2:ncol(w.df)], function(my.df){as.numeric(gsub(",", ".", my.df))})
 }
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# Arrangement des doublons PAS FINI >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Arrangement des doublons 
 w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm()
 w.df <- w.df[,!colnames(w.df) %in% "Date"] # pour ne pas creer de confusion entre les bases de donnees
 w.df <- aggregate(w.df, by = list(w.df$Date.s), mean)
 
 identical(length(w.df$Date.s), length(unique(w.df$Date.s))) # All work!!
-# n_occur <- data.frame(table(w.df$Date.s)) %>%
-#   {.[.$Freq > 1,]}
-# n_occur$Var1 <- n_occur$Var1 %>% as.character %>% ymd_hms()
-# n_occur$Freq <- n_occur$Freq %>% cumsum
-# to_change <- which((w.df$Date.s %in% n_occur$Var1) == T)
-# to_change[1:last(to_change)] %>% list()
-# seq(first(to_change), last(to_change))
-# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # MERGE des bases de donnees weather et demande aux heures 
-
 #  on remarque que les bases de donnees ont des differences:
 list(w.df.dif = which(!(hd.df$Date.s %in% w.df$Date.s)) %>% hd.df$Date.s[.],
      hd.df.dif = which(!(w.df$Date.s %in% hd.df$Date.s)) %>% w.df$Date.s[.])
@@ -98,14 +88,14 @@ hour.df <- hour.df[!is.na(hour.df$Load_Mw),]
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Visualisation d'une serie
 acf(hour.df$Load_Mw) 
+# on remarque que l'ossiation est constante dans les annees. Ainsi, on peut predire sur tout les annees a partir d'aujourd'hui : https://www.r-bloggers.com/time-series-deep-learning-forecasting-sunspots-with-keras-stateful-lstm-in-r/
 
 # Mesure s'il y a une constance dans la serie (aka, une non croissance p/r au temps)
 # plot(lm(Load_Mw~Date.s, data = hour.df))# %>% summary()
 {plot(hour.df$Date.s, hour.df$Load_Mw,pch='.')
 lm.fit <- lm(Load_Mw~Date.s, data = hour.df)
-p.lm <- lm.fit %>% predict(se.fit = T) 
-seq(min(hour.df$Date.s), max(hour.df$Date.s), by = "hour") %>% lines(., p.lm$fit, col="red")
-# title()
+x.interval <- seq(min(hour.df$Date.s), max(hour.df$Date.s), by = "hour") 
+abline(lm.fit, col = "red")
 legend('topright', legend = paste0(c("pente : ", as.character(lm.fit$coefficients["Date.s"]))), bty = 'n')
 lm.fit %>% summary()}
 
@@ -136,10 +126,11 @@ hd.df[hd.df$Total.Energy.Use.from.Electricity..MW. == min(hd.df[hd.df$Hour==1,"T
 # M O D E L E S
 
 # On va utiliser 70% des donnees pour le training :
+set.seed(123)
 train_max <- 0.7*nrow(hour.df)
 
 
-# Modele 1 : Base sur cet article (https://freakonometrics.hypotheses.org/52081)
+# Modele 1 : Base sur cet article (https://freakonometrics.hypotheses.org/52081) ----
 
 plot(hd.df[hd.df$Year == 2003,3],type='l')
 model1 <- lm(Load_Mw ~ poly(Hour,3) + poly(Month,3) + Year, data=hd.df, subset = which(hd.df$Year %in% c(2003:2005))) # il faut mettre plus d'une valeur de Year, sinon le lm exclus la variable explicative 
@@ -152,10 +143,10 @@ lines(p[1:100],col='red')
 # Clairement pas great comme modele, on va ajouter la temperature
 
 
-# Modele 2 : Ajout de la temperature
+# Modele 2 : Ajout de la temperature ----
 class(hd.df$Date.s)
 class(w.df$Date)
-w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm()
+# w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm() # pas necessaire, ligne en haut qui fait la meme chose
 
 
 
@@ -172,7 +163,7 @@ plot(new_data[1:100,3],type='l')
 lines(p[1:100],col='red')
 # Deja beaucoup mieux
 
-# Modele 3 : premier essaie pour l'arbre
+# Modele 3 : premier essaie pour l'arbre ----
 train <- 1:train_max
 hour.df.test <- hour.df[-train,]
 
@@ -203,8 +194,12 @@ abline(0,1)
 MSE <- mean((pred-hour.df.test[,'Load_Mw'])^2) # Immense MSE
 sqrt(MSE) # Les predictions sont around 1978 Mw de la vraie valeur
 
-# Modele 4 : Premier essaie de random forest
+# Modele 4 : Premier essaie de random forest ----
 model4 <- randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,mtry=13,importance=T)
 
 
-
+# Modele 5, bestglm ----
+{hour.y.df <- hour.df
+hour.y.df$y <- hour.y.df$Load_Mw
+hour.y.df <- hour.y.df[,colnames(hour.y.df) %in% "Load_Mw"]}
+best.hour.y.df <- bestglm(Xy = hour.y.df, IC = "AIC", method = "exhaustive")
