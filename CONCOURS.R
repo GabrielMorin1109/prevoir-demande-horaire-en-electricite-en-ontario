@@ -73,7 +73,8 @@ list(w.df.dif = which(!(hd.df$Date.s %in% w.df$Date.s)) %>% hd.df$Date.s[.],
 hour.I.df <- merge(hd.df, w.df, by = "Date.s", all.x=T)  # On va merge les 2 df par heure pour faciliter les modeles
 which(is.na(hour.I.df)) %>% hour.I.df[.,]
 # On retire les donnees ou Load_Mw est NA
-hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %in% c("Date", "Group.1")])
+hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %in% c(#"Date",
+                                                                                     "Group.1")])
 # hour.I.df$Date.s <- force_tz(hour.I.df$Date.s,"America/Toronto")
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -108,19 +109,21 @@ hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %i
 }
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ###
-hour_Mw.ts <- ts(hour.df$Load_Mw,
+# hour.df$Date.s <- 
+  # hour.df$Date.s %>% as.character() %>% as.Date()
+hour.ts <-  ts(hour.df,
                  start= c(2003,1,1),#decimal_date(ymd_hms("2003-01-01 01:00:00")), #hour.I.df[1,'Date.s']
-                 end = c(2016,12,31),#decimal_date(ymd_hms("2016-12-31 23:00:00")), # hour.I.df[nrow(hour.I.df),'Date.s']),
-                 frequency=24)
-time(hour_Mw.ts)
-hour_Mw.stl <- stl(hour_Mw.ts, s.window = "period")
+                 end = c(2016,12,31), #decimal_date(ymd_hms("2016-12-31 23:00:00")), # hour.I.df[nrow(hour.I.df),'Date.s']),
+                 frequency=24*365/12)
+time(hour.ts)
+hour_Mw.stl <- stl(hour.ts, s.window = "period")
 # adf.test(diff(hour_Mw.ts), alternative="stationary", k=0) # on rejette l'hypothese null que la tim serie est stationnaire
 
 
 plot(hour_Mw.stl)  # top=original data, second=estimated seasonal, third=estimated smooth trend, bottom=estimated irregular element i.e. unaccounted for variation
 monthplot(hour_Mw.stl, choice = "seasonal")  # variation in milk production for each month
 seasonplot(hour_Mw.ts)
-# fit <- arima(hour_Mw.ts, order=c(p, d, q))
+
 
 hour.xts <- xts(hour.df, order.by = hour.df$Date.s)
 HoltWinters(hour_Mw.ts, beta=FALSE, gamma = FALSE) %>% plot()
@@ -330,7 +333,7 @@ frequency(hour.df$Date.s)
 # Modele 6.gm, bestglm ----
 {hour.y.df <- hour.df
 hour.y.df$y <- hour.y.df$Load_Mw
-hour.y.df <- hour.y.df[,!colnames(hour.y.df) %in% c("Load_Mw")]
+hour.y.df <- hour.y.df[,!colnames(hour.y.df) %in% c("Load_Mw", "Hour", "Year")]
 }
 hour.y.df %>% str()
 best.hour.y.df <- bestglm(Xy = hour.y.df, family = exponential, IC = "AIC", method = "exhaustive")
