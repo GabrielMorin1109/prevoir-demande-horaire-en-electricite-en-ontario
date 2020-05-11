@@ -271,7 +271,8 @@ for(i in 169:nrow(clean.df)){
 }
 
 for(i in 1:nrow(clean.df)){
-  if(isWeekend(clean.df[i,'Date.s'])){1}else{0}
+  clean.df[i,'Weekend'] <- if(isWeekend(clean.df[i,'Date.s'])){1}else{0}
+  clean.df[i,'Holiday'] <- if(isHoliday(clean.df[i,'Date.s'])){1}else{0}
 }
 
 
