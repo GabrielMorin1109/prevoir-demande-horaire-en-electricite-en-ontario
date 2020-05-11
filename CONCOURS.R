@@ -197,14 +197,14 @@ MSE <- mean((pred-hour.df.test[,'Load_Mw'])^2) # Immense MSE
 sqrt(MSE) # Les predictions sont around 1978 Mw de la vraie valeur
 
 
-# Modele 4 : Premier essaie de random forest
+# Modele 4 : Premier essaie de random forest ----
 
 #model4 <- randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,mtry=13,importance=T)
 #randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,importance=T)
 
 mini.df <- hour.df[train,c('Hour','Year','Load_Mw','temperature','profondeur_neige','densite_air')]
 
-model4 <- randomForest(Load_Mw ~ .,data=mini.df)
+model4 <- randomForest(Load_Mw ~ .,data=na.omit(mini.df), mtry = length(colnames(mini.df))/3, importance = TRUE, ntree = 50)
 summary(model4)
 importance(model4)
 
@@ -218,7 +218,7 @@ plot(new_data[300:400,'Load_Mw'],type='l')
 lines(pred.rf[300:400],col='red')
 # Not bad!!
 
-# Modele 5 : Essayons de rouler une random forest en parallel pour voir ce que ca donne quand on la laisse decider des variables
+# Modele 5 : Essayons de rouler une random forest en parallel pour voir ce que ca donne quand on la laisse decider des variables ----
 cores <- 6
 cl <- makeCluster(cores)
 registerDoParallel(cores)
