@@ -76,27 +76,6 @@ which(is.na(hour.I.df)) %>% hour.I.df[.,]
 hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %in% c("Date", "Group.1")])
 # hour.I.df$Date.s <- force_tz(hour.I.df$Date.s,"America/Toronto")
 
-
-
-
-
-# ###
-# hour_Mw.ts <- ts(hour.I.df$Load_Mw,
-#               start= c(2003,1,1),#decimal_date(ymd_hms("2003-01-01 01:00:00")), #hour.I.df[1,'Date.s']
-#               end = c(2016,12,31),#decimal_date(ymd_hms("2016-12-31 23:00:00")), # hour.I.df[nrow(hour.I.df),'Date.s']),
-#               frequency=24)
-# time(hour_Mw.ts)
-# hour_Mw.stl <- stl(hour_Mw.ts, s.window = "period")
-# # adf.test(diff(hour_Mw.ts), alternative="stationary", k=0) # on rejette l'hypothese null que la tim serie est stationnaire
-# 
-# 
-# plot(hour_Mw.stl)  # top=original data, second=estimated seasonal, third=estimated smooth trend, bottom=estimated irregular element i.e. unaccounted for variation
-# monthplot(hour_Mw.stl, choice = "seasonal")  # variation in milk production for each month
-# seasonplot(hour_Mw.ts)
-# # fit <- arima(hour_Mw.ts, order=c(p, d, q))
-# 
-# hour.xts <- xts(hour.I.df, order.by = hour.I.df$Date.s)
-# HoltWinters(hour_Mw.ts, beta=FALSE, gamma = FALSE) %>% plot()
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Proportion de la consommation d'electricite par le Residentiel 
 {
@@ -127,6 +106,24 @@ hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %i
                                           #       )
   }) %>% reduce(bind_rows)
 }
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+###
+hour_Mw.ts <- ts(hour.df$Load_Mw,
+                 start= c(2003,1,1),#decimal_date(ymd_hms("2003-01-01 01:00:00")), #hour.I.df[1,'Date.s']
+                 end = c(2016,12,31),#decimal_date(ymd_hms("2016-12-31 23:00:00")), # hour.I.df[nrow(hour.I.df),'Date.s']),
+                 frequency=24)
+time(hour_Mw.ts)
+hour_Mw.stl <- stl(hour_Mw.ts, s.window = "period")
+# adf.test(diff(hour_Mw.ts), alternative="stationary", k=0) # on rejette l'hypothese null que la tim serie est stationnaire
+
+
+plot(hour_Mw.stl)  # top=original data, second=estimated seasonal, third=estimated smooth trend, bottom=estimated irregular element i.e. unaccounted for variation
+monthplot(hour_Mw.stl, choice = "seasonal")  # variation in milk production for each month
+seasonplot(hour_Mw.ts)
+# fit <- arima(hour_Mw.ts, order=c(p, d, q))
+
+hour.xts <- xts(hour.df, order.by = hour.df$Date.s)
+HoltWinters(hour_Mw.ts, beta=FALSE, gamma = FALSE) %>% plot()
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Visualisation d'une serie
 acf(hour.df$Load_Mw)
