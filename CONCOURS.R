@@ -330,11 +330,12 @@ clean.df <- hour.df
 clean.df$Day <- day(clean.df$Date.s)
 clean.df$weekday <- wday(clean.df$Date.s)
 
-
 for(i in 1:nrow(clean.df)){
   clean.df[i,'Weekend'] <- if(isWeekend(clean.df[i,'Date.s'])[[1]]){1}else{0}
+  clean.df[i,'snow'] <- if(clean.df[i,'profondeur_neige'] > 0){1}else{0}
 }
 
+clean.df[1,'profondeur_neige']
 
 # Tests de holiday qui n'ont pas marché
   #isHoliday('Canada',as.Date(clean.df[100,'Date.s']))[[1]]
