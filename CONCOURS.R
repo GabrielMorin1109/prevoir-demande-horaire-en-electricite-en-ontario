@@ -346,21 +346,23 @@ clean.df$weekday <- wday(clean.df$Date.s)
 clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
 
 {
-  cores <- detectCores()/2+2
-  cl <- makeCluster(cores)
-  registerDoParallel(cores)
-  getDoParWorkers() 
+  {
+    cores <- if(detectCores()==8){7} else {11}
+    cl <- makeCluster(cores)
+    registerDoParallel(cores)
+    getDoParWorkers() # Just checking, how many workers you have 
+  }
+
+  model6 <- foreach(ntree=rep(floor(50/cores), cores), .combine=randomForest::combine,
+                    .multicombine=TRUE, .packages='randomForest') %dopar% {
+                      randomForest(Load_Mw~.,data=clean.df,
+                                   subset=train,
+                                   importance=T,
+                                   ntree=ntree)
+                      }
+  
+  stopCluster(cl)
 }
-
-model6 <- foreach(ntree=rep(floor(50/cores), cores), .combine=randomForest::combine,
-                  .multicombine=TRUE, .packages='randomForest') %dopar% {
-                    randomForest(Load_Mw~.,data=clean.df,
-                                 subset=train,
-                                 importance=T,
-                                 ntree=ntree)
-                    }
-
-stopCluster(cl)
 
 importance(model6)
 
