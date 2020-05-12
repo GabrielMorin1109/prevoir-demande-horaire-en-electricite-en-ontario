@@ -157,8 +157,10 @@ hour_Mw.ts %>% decompose(type = "multiplicative") %>% plot
 
 plot(hour.year.ts[,"Load_Mw"])
 plot(hour_Mw.stl)  # top=original data, second=estimated seasonal, third=estimated smooth trend, bottom=estimated irregular element i.e. unaccounted for variation
-monthplot(hour_Mw.stl, choice = "seasonal")  # variation in milk production for each month
-seasonplot(hour_Mw.ts)
+monthplot(hour_Mw.stl, choice = "seasonal") 
+
+seasonplot(ts(hour.df$Load_Mw, start= c(2003,1,1), end = c(2016,12,31), frequency=24), year.labels=TRUE)
+seasonplot(ts(hour.df$Load_Mw, start= c(2003,1,1), end = c(2016,12,31), frequency=24*7), year.labels = TRUE)
 
 plot(hour_Mw.stl)
 plot(stl(hour.year.ts[,"Load_Mw"], s.window = "periodic")) # decroissance de la consommation p/r aux annees
@@ -216,112 +218,114 @@ hd.df[hd.df$Total.Energy.Use.from.Electricity..MW. == min(hd.df[hd.df$Hour==1,"T
 # On va utiliser 70% des donnees pour le training :
 set.seed(123)
 train_max <- 0.7*nrow(hour.df)
-
-
-# Modele 1 : Base sur cet article (https://freakonometrics.hypotheses.org/52081) ----
-
-plot(hd.df[hd.df$Year == 2003,3],type='l')
-model1 <- lm(Load_Mw ~ poly(Hour,3) + poly(Month,3) + Year, data=hd.df, subset = which(hd.df$Year %in% c(2003:2005))) # il faut mettre plus d'une valeur de Year, sinon le lm exclus la variable explicative 
-summary(model1) #Year est NA dans le modele,  normal?
-
-new_data <- hd.df[hd.df$Year == 2016,]
-p = predict(model1,newdata=new_data[1:100,]) #
-plot(new_data[1:100,3],type='l')
-lines(p[1:100],col='red')
-# Clairement pas great comme modele, on va ajouter la temperature
-
-
-# Modele 2 : Ajout de la temperature ----
-class(hd.df$Date.s)
-class(w.df$Date)
-# w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm() # pas necessaire, ligne en haut qui fait la meme chose
-
-
-
-
-plot(x=hour.df$temperature,y=hour.df$Load_Mw)
-
-model2 <- lm(Load_Mw ~ poly(Hour,3) + poly(Month,3) + Year + bs(temperature),data=hour.df[hour.df$Year != 2016,]) 
-# j'ai mis bs pour la temperature pcq poly ne marchait pas
-summary(model2)
-
-new_data <- hour.df[hour.df$Year == 2016,]
-p = predict(model2,newdata=new_data[1:110,c(2,5,4,8)])
-plot(new_data[1:100,3],type='l')
-lines(p[1:100],col='red')
-# Deja beaucoup mieux
-
-# Modele 3 : premier essaie pour l'arbre ----
 train <- 1:train_max
-hour.df.test <- hour.df[-train,]
 
-model3 <- tree(Load_Mw ~ .,data=hour.df,subset=train)
-summary(model3)
-plot(model3)
-text(model3,pretty=0)
-
-pred <- predict(model3,hour.df.test)
-plot(hour.df.test[1:100,3],type='l')
-lines(pred[1:100],col='red')
-
-# On va essayer de prune l'arbre pour avoir des meilleurs resultats
-cv.model3 <- cv.tree(model3)
-# dev correspond au cross-validation error rate
-# On utilise la cross validation pour savoir si du pruning est necessaire. Puisque le cross validation utilise un subtree, un devrait prune je pense
-plot(cv.model3$size,cv.model3$dev,type='b') # Aucune idee ce que signifie ce graph, c'etait ce qui faisait dans le livre
-plot(cv.model3$k,cv.model3$dev,type='b')  # Aucune idee ce que signifie ce graph, c'etait ce qui faisait dans le livre
-
-prune.model3 <- prune.tree(model3,best=5)
-plot(prune.model3)
-text(prune.model3,pretty=0)
-
-pred <- predict(prune.model3,hour.df.test)
-plot(pred,hour.df.test[,'Load_Mw'])
-abline(0,1)
-# Clairement pas obtimal
-MSE <- mean((pred-hour.df.test[,'Load_Mw'])^2) # Immense MSE
-sqrt(MSE) # Les predictions sont around 1978 Mw de la vraie valeur
-
-
-# Modele 4 : Premier essaie de random forest ----
-
-#model4 <- randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,mtry=13,importance=T)
-#randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,importance=T)
-
-mini.df <- hour.df[train,c('Hour','Year','Load_Mw','temperature','profondeur_neige','densite_air')]
-
-model4 <- randomForest(Load_Mw ~ .,data=na.omit(mini.df), mtry = length(colnames(mini.df))/3, importance = TRUE, ntree = 50)
-summary(model4)
-importance(model4)
-
-new_data <- hour.df[-train,c('Hour','Year','Load_Mw','temperature','profondeur_neige','densite_air')]
-pred.rf <- predict(model4,newdata=new_data)
-MSE.rf <- mean((pred.rf-mini.df$Load_Mw)^2) # Encore immense...
-sqrt(MSE)
-varImpPlot(model4)
-
-plot(new_data[300:400,'Load_Mw'],type='l')
-lines(pred.rf[300:400],col='red')
-# Not bad!!
-
-# Modele 5 : Essayons de rouler une random forest en parallel pour voir ce que ca donne quand on la laisse decider des variables ----
-cores <- 6
-cl <- makeCluster(cores)
-registerDoParallel(cores)
-getDoParWorkers() # Just checking, how many workers you have
-
-model5 <- randomForest(Load_Mw~.,data=hour.df,subset=train,importance=T)
-importance(model5) # On remarque beaucoup de redondance, genre surement pas besoin de Date.s, Date, Hour, Year, Month, Group.1... je vais faire une base cleaner lundi
-# Je pensais que la random forest utiliserait juste les variables pertinentes comme le tree l'avais fait, mais on dirait pas finalement...
-pred.rf.2 <- predict(model5,newdata=hour.df[-train,])
-MSE.rf.2 <- mean((pred.rf.2-hour.df[-train,'Load_Mw'])^2)
-sqrt(MSE.rf.2) # Considerablement plus petit que ce qu'on a eu jusqu'a present!
-
-new_data <- hour.df[-train,]
-plot(new_data[1:100,'Load_Mw'],type='l')
-lines(pred.rf.2[1:100],col='red')
-
-stopCluster(cl)
+{
+  # Modele 1 : Base sur cet article (https://freakonometrics.hypotheses.org/52081) 
+  
+  plot(hd.df[hd.df$Year == 2003,3],type='l')
+  model1 <- lm(Load_Mw ~ poly(Hour,3) + poly(Month,3) + Year, data=hd.df, subset = which(hd.df$Year %in% c(2003:2005))) # il faut mettre plus d'une valeur de Year, sinon le lm exclus la variable explicative 
+  summary(model1) #Year est NA dans le modele,  normal?
+  
+  new_data <- hd.df[hd.df$Year == 2016,]
+  p = predict(model1,newdata=new_data[1:100,]) #
+  plot(new_data[1:100,3],type='l')
+  lines(p[1:100],col='red')
+  # Clairement pas great comme modele, on va ajouter la temperature
+  
+  
+  # Modele 2 : Ajout de la temperature 
+  class(hd.df$Date.s)
+  class(w.df$Date)
+  # w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm() # pas necessaire, ligne en haut qui fait la meme chose
+  
+  
+  
+  
+  plot(x=hour.df$temperature,y=hour.df$Load_Mw)
+  
+  model2 <- lm(Load_Mw ~ poly(Hour,3) + poly(Month,3) + Year + bs(temperature),data=hour.df[hour.df$Year != 2016,]) 
+  # j'ai mis bs pour la temperature pcq poly ne marchait pas
+  summary(model2)
+  
+  new_data <- hour.df[hour.df$Year == 2016,]
+  p = predict(model2,newdata=new_data[1:110,c(2,5,4,8)])
+  plot(new_data[1:100,3],type='l')
+  lines(p[1:100],col='red')
+  # Deja beaucoup mieux
+  
+  # Modele 3 : premier essaie pour l'arbre 
+  hour.df.test <- hour.df[-train,]
+  
+  model3 <- tree(Load_Mw ~ .,data=hour.df,subset=train)
+  summary(model3)
+  plot(model3)
+  text(model3,pretty=0)
+  
+  pred <- predict(model3,hour.df.test)
+  plot(hour.df.test[1:100,3],type='l')
+  lines(pred[1:100],col='red')
+  
+  # On va essayer de prune l'arbre pour avoir des meilleurs resultats
+  cv.model3 <- cv.tree(model3)
+  # dev correspond au cross-validation error rate
+  # On utilise la cross validation pour savoir si du pruning est necessaire. Puisque le cross validation utilise un subtree, un devrait prune je pense
+  plot(cv.model3$size,cv.model3$dev,type='b') # Aucune idee ce que signifie ce graph, c'etait ce qui faisait dans le livre
+  plot(cv.model3$k,cv.model3$dev,type='b')  # Aucune idee ce que signifie ce graph, c'etait ce qui faisait dans le livre
+  
+  prune.model3 <- prune.tree(model3,best=5)
+  plot(prune.model3)
+  text(prune.model3,pretty=0)
+  
+  pred <- predict(prune.model3,hour.df.test)
+  plot(pred,hour.df.test[,'Load_Mw'])
+  abline(0,1)
+  # Clairement pas obtimal
+  MSE <- mean((pred-hour.df.test[,'Load_Mw'])^2) # Immense MSE
+  sqrt(MSE) # Les predictions sont around 1978 Mw de la vraie valeur
+  
+  
+  # Modele 4 : Premier essaie de random forest 
+  
+  #model4 <- randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,mtry=13,importance=T)
+  #randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,importance=T)
+  
+  mini.df <- hour.df[train,c('Hour','Year','Load_Mw','temperature','profondeur_neige','densite_air')]
+  
+  model4 <- randomForest(Load_Mw ~ .,data=na.omit(mini.df), mtry = length(colnames(mini.df))/3, importance = TRUE, ntree = 50)
+  summary(model4)
+  importance(model4)
+  
+  new_data <- hour.df[-train,c('Hour','Year','Load_Mw','temperature','profondeur_neige','densite_air')]
+  pred.rf <- predict(model4,newdata=new_data)
+  MSE.rf <- mean((pred.rf-mini.df$Load_Mw)^2) # Encore immense...
+  sqrt(MSE)
+  varImpPlot(model4)
+  
+  plot(new_data[300:400,'Load_Mw'],type='l')
+  lines(pred.rf[300:400],col='red')
+  # Not bad!!
+  
+  # Modele 5 : Essayons de rouler une random forest en parallel pour voir ce que ca donne quand on la laisse decider des variables
+  cores <- 6
+  cl <- makeCluster(cores)
+  registerDoParallel(cores)
+  getDoParWorkers() # Just checking, how many workers you have
+  
+  model5 <- randomForest(Load_Mw~.,data=hour.df,subset=train,importance=T)
+  importance(model5) # On remarque beaucoup de redondance, genre surement pas besoin de Date.s, Date, Hour, Year, Month, Group.1... je vais faire une base cleaner lundi
+  # Je pensais que la random forest utiliserait juste les variables pertinentes comme le tree l'avais fait, mais on dirait pas finalement...
+  pred.rf.2 <- predict(model5,newdata=hour.df[-train,])
+  MSE.rf.2 <- mean((pred.rf.2-hour.df[-train,'Load_Mw'])^2)
+  sqrt(MSE.rf.2) # Considerablement plus petit que ce qu'on a eu jusqu'a present!
+  
+  new_data <- hour.df[-train,]
+  plot(new_data[1:100,'Load_Mw'],type='l')
+  lines(pred.rf.2[1:100],col='red')
+  
+  stopCluster(cl)
+  
+} # ABANDONS
 
 
 # Modele 6 : Random Forest mais avec une base de donnee clean ----
@@ -330,9 +334,10 @@ clean.df <- hour.df
 clean.df$Day <- day(clean.df$Date.s)
 clean.df$weekday <- wday(clean.df$Date.s)
 
-for(i in 1:nrow(clean.df)){
-  clean.df[i,'Weekend'] <- if(isWeekend(clean.df[i,'Date.s'])[[1]]){1}else{0}
-  clean.df[i,'snow'] <- if(clean.df[i,'profondeur_neige'] > 0){1}else{0}
+{
+  clean.df$Weekend <- clean.df$snow <- rep(0, nrow(clean.df))
+  clean.df$snow[which(clean.df$profondeur_neige > 0)] <- 1
+  clean.df$Weekend[which(isWeekend(clean.df$Date.s))] <- 1
 }
 
 # Tests de holiday qui n'ont pas marché
@@ -367,76 +372,82 @@ lines(pred.rf.3[1:100],col='red')
 
 new_data[1:100,]
 
-# Modele7 : random forest avec database en format ts ----
-
-# **** MEILLEUR MODELE A PRESENT ****
-clean.test.ts <- ts(clean.df,start=c(2003,1),end=c(2016,12),freq=24*365.5)
-
-
 {
-  cores <- 6
-  cl <- makeCluster(cores)
-  registerDoParallel(cores)
-  getDoParWorkers() 
-}
+  # Modele 7 : random forest avec database en format ts ----
   
-model7 <- randomForest(Load_Mw~.,data=clean.test.ts,subset=train,importance=T,ntree=50)
+  # **** MEILLEUR MODELE A PRESENT ****
+  clean.test.ts <- ts(clean.df,start=c(2003,1),end=c(2016,12),freq=24*365.5)
   
-stopCluster(cl) 
+  
+  {
+    cores <- 6
+    cl <- makeCluster(cores)
+    registerDoParallel(cores)
+    getDoParWorkers() 
+  }
+  
+  model7 <- randomForest(Load_Mw~.,data=clean.test.ts,subset=train,importance=T,ntree=50)
+  
+  stopCluster(cl) 
+  
+  importance(model7)
+  
+  {
+    pred.rf.3 <- predict(model7,newdata=clean.test.ts[-train,])
+    MSE.rf.3 <- mean((pred.rf.3-clean.test.ts[-train,'Load_Mw'])^2)
+    sqrt(MSE.rf.3) # Plus bas qu'avec le data.frame, ce modele est donc meilleur!
+  }
+  
+  
+  new_data <- clean.test.ts[-train,]
+  plot(new_data[100:200,'Load_Mw'],type='l')
+  lines(pred.rf.3[100:200],col='red')
+} # MODEL7 : comme le 6 mais avec base de donnee en format ts
 
-importance(model7)
 
 {
-  pred.rf.3 <- predict(model7,newdata=clean.test.ts[-train,])
-  MSE.rf.3 <- mean((pred.rf.3-clean.test.ts[-train,'Load_Mw'])^2)
-  sqrt(MSE.rf.3) # Plus bas qu'avec le data.frame, ce modele est donc meilleur!
-}
+  # Modele 8 : Random forest en format ts test 2 
+  
+  clean.test.ts
+  
+  clean.2.ts <- clean.test.ts[,-which(colnames(clean.test.ts) %in% c('Hour','Year','Month','Day'))]
+  
+  {
+    cores <- 6
+    cl <- makeCluster(cores)
+    registerDoParallel(cores)
+    getDoParWorkers() 
+  }
+  
+  model8 <- randomForest(Load_Mw~.,data=clean.2.ts,subset=train,importance=T,ntree=50)
+  
+  stopCluster(cl) 
+  
+  importance(model8)
+  
+  {
+    pred.rf.3 <- predict(model8,newdata=clean.2.ts[-train,])
+    MSE.rf.3 <- mean((pred.rf.3-clean.2.ts[-train,'Load_Mw'])^2)
+    sqrt(MSE.rf.3) # Plus bas qu'avec le data.frame, ce modele est donc meilleur!
+  }
+  
+  
+  new_data <- clean.2.ts[-train,]
+  plot(new_data[1:100,'Load_Mw'],type='l')
+  lines(pred.rf.3[1:100],col='red')
+  # Pas tres bon finalement, on va rester avec le model7
+  
+  
+  
+  
+  # Modele 6.gm, bestglm ———— NE FONTIONNE PAS!! 
+  {hour.y.df <- hour.df
+    hour.y.df$y <- hour.y.df$Load_Mw
+    hour.y.df <- hour.y.df[,!colnames(hour.y.df) %in% c("Load_Mw", "Hour", "Year")]
+  }
+  hour.y.df %>% str()
+  best.hour.y.df <- bestglm(Xy = hour.y.df, family = exponential, IC = "AIC", method = "exhaustive")
+} # ABANDONS
 
-
-new_data <- clean.test.ts[-train,]
-plot(new_data[100:200,'Load_Mw'],type='l')
-lines(pred.rf.3[100:200],col='red')
-
-# Modele 8 : Random forest en format ts test 2 ----
-
-clean.test.ts
-
-clean.2.ts <- clean.test.ts[,-which(colnames(clean.test.ts) %in% c('Hour','Year','Month','Day'))]
-
-{
-  cores <- 6
-  cl <- makeCluster(cores)
-  registerDoParallel(cores)
-  getDoParWorkers() 
-}
-
-model8 <- randomForest(Load_Mw~.,data=clean.2.ts,subset=train,importance=T,ntree=50)
-
-stopCluster(cl) 
-
-importance(model8)
-
-{
-  pred.rf.3 <- predict(model8,newdata=clean.2.ts[-train,])
-  MSE.rf.3 <- mean((pred.rf.3-clean.2.ts[-train,'Load_Mw'])^2)
-  sqrt(MSE.rf.3) # Plus bas qu'avec le data.frame, ce modele est donc meilleur!
-}
-
-
-new_data <- clean.2.ts[-train,]
-plot(new_data[1:100,'Load_Mw'],type='l')
-lines(pred.rf.3[1:100],col='red')
-# Pas tres bon finalement, on va rester avec le model7
-
-
-
-
-# Modele 6.gm, bestglm ———— NE FONTIONNE PAS!! --- 
-{hour.y.df <- hour.df
-hour.y.df$y <- hour.y.df$Load_Mw
-hour.y.df <- hour.y.df[,!colnames(hour.y.df) %in% c("Load_Mw", "Hour", "Year")]
-}
-hour.y.df %>% str()
-best.hour.y.df <- bestglm(Xy = hour.y.df, family = exponential, IC = "AIC", method = "exhaustive")
 
 
