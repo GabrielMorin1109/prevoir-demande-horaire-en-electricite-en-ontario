@@ -157,8 +157,10 @@ hour_Mw.ts %>% decompose(type = "multiplicative") %>% plot
 
 plot(hour.year.ts[,"Load_Mw"])
 plot(hour_Mw.stl)  # top=original data, second=estimated seasonal, third=estimated smooth trend, bottom=estimated irregular element i.e. unaccounted for variation
-monthplot(hour_Mw.stl, choice = "seasonal")  # variation in milk production for each month
-seasonplot(hour_Mw.ts)
+monthplot(hour_Mw.stl, choice = "seasonal") 
+
+seasonplot(ts(hour.df$Load_Mw, start= c(2003,1,1), end = c(2016,12,31), frequency=24), year.labels=TRUE)
+seasonplot(ts(hour.df$Load_Mw, start= c(2003,1,1), end = c(2016,12,31), frequency=24*7), year.labels = TRUE)
 
 plot(hour_Mw.stl)
 plot(stl(hour.year.ts[,"Load_Mw"], s.window = "periodic")) # decroissance de la consommation p/r aux annees
