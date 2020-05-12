@@ -4,8 +4,10 @@
   list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod",
                 "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table", "bestglm",
                 "xts", "forecast", "tseries", # for time series object
+                "corrgram",#correlation gram, semblable a acf
                 "opera", #package arthur
                 "keras", # info sur son utilisation: https://www.datacamp.com/community/tutorials/keras-r-deep-learning
+                "tensorflow",
                 'tree', # pour faire des arbres
                 'randomForest', 
                 'doParallel',
@@ -75,7 +77,7 @@ list(w.df.dif = which(!(hd.df$Date.s %in% w.df$Date.s)) %>% hd.df$Date.s[.],
 hour.I.df <- merge(hd.df, w.df, by = "Date.s", all.x=T)  # On va merge les 2 df par heure pour faciliter les modeles
 which(is.na(hour.I.df)) %>% hour.I.df[.,]
 # On retire les donnees ou Load_Mw est NA
-hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %in% c(#"Date",
+hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %in% c("Date",
                                                                                      "Group.1")])
 # hour.I.df$Date.s <- force_tz(hour.I.df$Date.s,"America/Toronto")
 
@@ -128,28 +130,51 @@ hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %i
   }) %>% reduce(bind_rows)
 }
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Optimisation 
+hour.df$day.week <- wday(hour.df$Date.s)
+hour.df$day.week
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 ###
-# hour.df$Date.s <- 
-  # hour.df$Date.s %>% as.character() %>% as.Date()
 hour.ts <-  ts(hour.df,
                  start= c(2003,1,1),#decimal_date(ymd_hms("2003-01-01 01:00:00")), #hour.I.df[1,'Date.s']
                  end = c(2016,12,31), #decimal_date(ymd_hms("2016-12-31 23:00:00")), # hour.I.df[nrow(hour.I.df),'Date.s']),
-                 frequency=24*365/12)
+                 frequency=24*365/12) # saison = 1 mois ici
+cycle(hour.ts)
+hour.year.ts <- ts(hour.df,
+                   start= c(2003,1,1),
+                   end = c(2016,12,31),
+                   frequency=24*365)
 time(hour.ts)
-hour_Mw.stl <- stl(hour.ts, s.window = "period")
+hour_Mw.stl <- stl(hour.ts[,"Load_Mw"], s.window = "period")
+# hour.ts.multi <- decompose(hour.ts,type = "mult")
+hour_Mw.ts <- ts(hour.df$Load_Mw, start= c(2003,1,1), end = c(2016,12,31), frequency=24*365/12)
+hour_Mw.ts %>% decompose() %>% plot
+hour.year.ts %>% decompose %>% plot
+hour_Mw.ts %>% decompose(type = "multiplicative") %>% plot
+  # plot(hour.ts.multi)
 # adf.test(diff(hour_Mw.ts), alternative="stationary", k=0) # on rejette l'hypothese null que la tim serie est stationnaire
 
-
+plot(hour.year.ts[,"Load_Mw"])
 plot(hour_Mw.stl)  # top=original data, second=estimated seasonal, third=estimated smooth trend, bottom=estimated irregular element i.e. unaccounted for variation
 monthplot(hour_Mw.stl, choice = "seasonal")  # variation in milk production for each month
 seasonplot(hour_Mw.ts)
 
-
-hour.xts <- xts(hour.df, order.by = hour.df$Date.s)
+plot(hour_Mw.stl)
+plot(stl(hour.year.ts[,"Load_Mw"], s.window = "periodic")) # decroissance de la consommation p/r aux annees
+# hour.xts <- xts(hour.df, order.by = hour.df$Date.s)
 HoltWinters(hour_Mw.ts, beta=FALSE, gamma = FALSE) %>% plot()
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Visualisation d'une serie
-acf(hour.df$Load_Mw)
+acf(hour.df$Load_Mw, lag=24) #autocorrelation par 24h
+acf(hour.df$Load_Mw, lag=24*7*3)
+acf(hour.year.ts[,"Load_Mw"],lag = 24*365)
+acf(hour.ts[,"Load_Mw"])
+pacf(hour_Mw.ts)
+acf(hour_Mw.ts)
+# auto.arima(hour_Mw.ts)
+decompose(hour_Mw.ts, type = "multiplicative")$random %>% na.omit %>% acf
+corrgram(hour.ts)
 # on remarque que l'ossiation est constante dans les annees. Ainsi, on peut predire sur tout les annees a partir d'aujourd'hui : https://www.r-bloggers.com/time-series-deep-learning-forecasting-sunspots-with-keras-stateful-lstm-in-r/
 
 # Mesure s'il y a une constance dans la serie (aka, une non croissance p/r au temps)
@@ -314,7 +339,7 @@ for(i in 1:nrow(clean.df)){
   #isHoliday('Canada',as.Date(clean.df[100,'Date.s']))[[1]]
   #isHoliday(x=as.Date(clean.df$Date.s),holidays='Canada/TSX')
 
-clean.df <- clean.df[-which(colnames(clean.df)=='Date.s'),]
+clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
 
 cores <- 6
 cl <- makeCluster(cores)
@@ -340,6 +365,7 @@ lines(pred.rf.3[1:100],col='red')
 # **** MEILLEUR MODELE A PRESENT ****
 clean.test.ts <- ts(clean.df,start=c(2003,1),end=c(2016,12),freq=24*365.5)
 
+
 {
   cores <- 6
   cl <- makeCluster(cores)
@@ -347,7 +373,7 @@ clean.test.ts <- ts(clean.df,start=c(2003,1),end=c(2016,12),freq=24*365.5)
   getDoParWorkers() 
 }
   
-model7 <- randomForest(Load_Mw~.,data=clean.test.ts,subset=train,importance=T,ntree=500)
+model7 <- randomForest(Load_Mw~.,data=clean.test.ts,subset=train,importance=T,ntree=50)
   
 stopCluster(cl) 
 
@@ -361,12 +387,44 @@ importance(model7)
 
 
 new_data <- clean.test.ts[-train,]
+plot(new_data[100:200,'Load_Mw'],type='l')
+lines(pred.rf.3[100:200],col='red')
+
+# Modele 8 : Random forest en format ts test 2 ----
+
+clean.test.ts
+
+clean.2.ts <- clean.test.ts[,-which(colnames(clean.test.ts) %in% c('Hour','Year','Month','Day'))]
+
+{
+  cores <- 6
+  cl <- makeCluster(cores)
+  registerDoParallel(cores)
+  getDoParWorkers() 
+}
+
+model8 <- randomForest(Load_Mw~.,data=clean.2.ts,subset=train,importance=T,ntree=50)
+
+stopCluster(cl) 
+
+importance(model8)
+
+{
+  pred.rf.3 <- predict(model8,newdata=clean.2.ts[-train,])
+  MSE.rf.3 <- mean((pred.rf.3-clean.2.ts[-train,'Load_Mw'])^2)
+  sqrt(MSE.rf.3) # Plus bas qu'avec le data.frame, ce modele est donc meilleur!
+}
+
+
+new_data <- clean.2.ts[-train,]
 plot(new_data[1:100,'Load_Mw'],type='l')
 lines(pred.rf.3[1:100],col='red')
+# Pas tres bon finalement, on va rester avec le model7
 
 
 
-# Modele 6.gm, bestglm ----
+
+# Modele 6.gm, bestglm ———— NE FONTIONNE PAS!! --- 
 {hour.y.df <- hour.df
 hour.y.df$y <- hour.y.df$Load_Mw
 hour.y.df <- hour.y.df[,!colnames(hour.y.df) %in% c("Load_Mw", "Hour", "Year")]
