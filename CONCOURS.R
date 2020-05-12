@@ -314,7 +314,7 @@ for(i in 1:nrow(clean.df)){
   #isHoliday('Canada',as.Date(clean.df[100,'Date.s']))[[1]]
   #isHoliday(x=as.Date(clean.df$Date.s),holidays='Canada/TSX')
 
-clean.df <- clean.df[-which(colnames(clean.df)=='Date.s'),]
+clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
 
 cores <- 6
 cl <- makeCluster(cores)
@@ -340,6 +340,7 @@ lines(pred.rf.3[1:100],col='red')
 # **** MEILLEUR MODELE A PRESENT ****
 clean.test.ts <- ts(clean.df,start=c(2003,1),end=c(2016,12),freq=24*365.5)
 
+
 {
   cores <- 6
   cl <- makeCluster(cores)
@@ -347,7 +348,7 @@ clean.test.ts <- ts(clean.df,start=c(2003,1),end=c(2016,12),freq=24*365.5)
   getDoParWorkers() 
 }
   
-model7 <- randomForest(Load_Mw~.,data=clean.test.ts,subset=train,importance=T,ntree=500)
+model7 <- randomForest(Load_Mw~.,data=clean.test.ts,subset=train,importance=T,ntree=50)
   
 stopCluster(cl) 
 
@@ -361,8 +362,40 @@ importance(model7)
 
 
 new_data <- clean.test.ts[-train,]
+plot(new_data[100:200,'Load_Mw'],type='l')
+lines(pred.rf.3[100:200],col='red')
+
+# Modele 8 : Random forest en format ts test 2 ----
+
+clean.test.ts
+
+clean.2.ts <- clean.test.ts[,-which(colnames(clean.test.ts) %in% c('Hour','Year','Month','Day'))]
+
+{
+  cores <- 6
+  cl <- makeCluster(cores)
+  registerDoParallel(cores)
+  getDoParWorkers() 
+}
+
+model8 <- randomForest(Load_Mw~.,data=clean.2.ts,subset=train,importance=T,ntree=50)
+
+stopCluster(cl) 
+
+importance(model8)
+
+{
+  pred.rf.3 <- predict(model8,newdata=clean.2.ts[-train,])
+  MSE.rf.3 <- mean((pred.rf.3-clean.2.ts[-train,'Load_Mw'])^2)
+  sqrt(MSE.rf.3) # Plus bas qu'avec le data.frame, ce modele est donc meilleur!
+}
+
+
+new_data <- clean.2.ts[-train,]
 plot(new_data[1:100,'Load_Mw'],type='l')
 lines(pred.rf.3[1:100],col='red')
+# Pas tres bon finalement, on va rester avec le model7
+
 
 
 
