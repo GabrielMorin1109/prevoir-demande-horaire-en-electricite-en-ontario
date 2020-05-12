@@ -305,18 +305,8 @@ clean.df <- hour.df
 clean.df$Day <- day(clean.df$Date.s)
 clean.df$weekday <- wday(clean.df$Date.s)
 
-#for(i in 1:nrow(clean.df)){
-#  clean.df[i,'Weekend'] <- if(clean.df[i,'Year'] == 2003 & clean.df[i,'Month'] == 1 & clean.df[i,'Day'] == 4 | clean.df[i,'Year'] == 2003 & clean.df[i,'Month'] == 1 & clean.df[i,'Day'] == 5){1}else{0}
-#}
-
-#for(i in 169:nrow(clean.df)){
-#  clean.df[i,'Weekend'] <- if(clean.df[i-168,'Weekend']==1){1}else{0}
-#}
-
 for(i in 1:nrow(clean.df)){
   clean.df[i,'Weekend'] <- if(isWeekend(clean.df[i,'Date.s'])[[1]]){1}else{0}
-  #clean.df[i,'Weekday'] <- wday(clean.df[i,'Date.s'])
-  #clean.df[i,'Holiday'] <- if(isHoliday(clean.df[i,'Date.s'])[[1]]){1}else{0}
 }
 
 
@@ -338,28 +328,37 @@ stopCluster(cl)
 importance(model6)
 pred.rf.3 <- predict(model6,newdata=clean.df[-train,])
 MSE.rf.3 <- mean((pred.rf.3-clean.df[-train,'Load_Mw'])^2)
-sqrt(MSE.rf.3) # Considerablement plus petit que ce qu'on a eu jusqu'a present!
+sqrt(MSE.rf.3)
 
 new_data <- clean.df[-train,]
 plot(new_data[1:100,'Load_Mw'],type='l')
 lines(pred.rf.3[1:100],col='red')
 
 
-#TESTS
+# Modele7 : random forest avec database en format ts ----
+
+# **** MEILLEUR MODELE A PRESENT ****
 clean.test.ts <- ts(clean.df,start=c(2003,1),end=c(2016,12),freq=24*365.5)
-cores <- 6
-cl <- makeCluster(cores)
-registerDoParallel(cores)
-getDoParWorkers() # Just checking, how many workers you have
 
+{
+  cores <- 6
+  cl <- makeCluster(cores)
+  registerDoParallel(cores)
+  getDoParWorkers() 
+}
+  
 model7 <- randomForest(Load_Mw~.,data=clean.test.ts,subset=train,importance=T,ntree=500)
-
-stopCluster(cl)
+  
+stopCluster(cl) 
 
 importance(model7)
-pred.rf.3 <- predict(model7,newdata=clean.test.ts[-train,])
-MSE.rf.3 <- mean((pred.rf.3-clean.test.ts[-train,'Load_Mw'])^2)
-sqrt(MSE.rf.3) # Plus haut qu'avec le data.frame
+
+{
+  pred.rf.3 <- predict(model7,newdata=clean.test.ts[-train,])
+  MSE.rf.3 <- mean((pred.rf.3-clean.test.ts[-train,'Load_Mw'])^2)
+  sqrt(MSE.rf.3) # Plus bas qu'avec le data.frame, ce modele est donc meilleur!
+}
+
 
 new_data <- clean.test.ts[-train,]
 plot(new_data[1:100,'Load_Mw'],type='l')
