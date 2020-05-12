@@ -219,6 +219,8 @@ hd.df[hd.df$Total.Energy.Use.from.Electricity..MW. == min(hd.df[hd.df$Hour==1,"T
 
 train <- 1:(ceiling(0.7*nrow(hour.df)))
 
+plot(x=hour.df$temperature)
+
 {
   # Modele 1 : Base sur cet article (https://freakonometrics.hypotheses.org/52081) 
   
