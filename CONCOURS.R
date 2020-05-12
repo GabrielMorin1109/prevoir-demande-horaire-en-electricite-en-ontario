@@ -1,5 +1,5 @@
 # options(java.parameters = "-Xmx8000m") #afin de donner plus de heap space a java
-# Library
+# Library ----
 {
   list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod",
                 "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table", "bestglm",
@@ -10,7 +10,7 @@
                 "tensorflow",
                 'tree', # pour faire des arbres
                 'randomForest', 
-                'doParallel',
+                'doParallel', "foreach",
                 'timeDate',
                 'bestglm',
                 'chron'
@@ -131,8 +131,8 @@ hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %i
 }
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Optimisation 
-hour.df$day.week <- wday(hour.df$Date.s)
-hour.df$day.week
+# hour.df$day.week <- wday(hour.df$Date.s)
+# hour.df$day.week
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ###
@@ -216,9 +216,8 @@ hd.df[hd.df$Total.Energy.Use.from.Electricity..MW. == min(hd.df[hd.df$Hour==1,"T
 # M O D E L E S
 
 # On va utiliser 70% des donnees pour le training :
-set.seed(123)
-train_max <- 0.7*nrow(hour.df)
-train <- 1:train_max
+
+train <- 1:(ceiling(0.7*nrow(hour.df)))
 
 {
   # Modele 1 : Base sur cet article (https://freakonometrics.hypotheses.org/52081) 
@@ -347,13 +346,19 @@ clean.df$weekday <- wday(clean.df$Date.s)
 clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
 
 {
-  cores <- 6
+  cores <- detectCores()/2+2
   cl <- makeCluster(cores)
   registerDoParallel(cores)
-  getDoParWorkers() # Just checking, how many workers you have 
+  getDoParWorkers() 
 }
 
-model6 <- randomForest(Load_Mw~.,data=clean.df,subset=train,importance=T,ntree=50)
+model6 <- foreach(ntree=rep(floor(50/cores), cores), .combine=randomForest::combine,
+                  .multicombine=TRUE, .packages='randomForest') %dopar% {
+                    randomForest(Load_Mw~.,data=clean.df,
+                                 subset=train,
+                                 importance=T,
+                                 ntree=ntree)
+                    }
 
 stopCluster(cl)
 
