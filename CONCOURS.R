@@ -324,7 +324,7 @@ lines(pred.rf.2[1:100],col='red')
 stopCluster(cl)
 
 
-# Modele 6 : Random Forest mais avec une base de donnee clean
+# Modele 6 : Random Forest mais avec une base de donnee clean ----
 hour.df
 clean.df <- hour.df
 clean.df$Day <- day(clean.df$Date.s)
@@ -334,8 +334,6 @@ for(i in 1:nrow(clean.df)){
   clean.df[i,'Weekend'] <- if(isWeekend(clean.df[i,'Date.s'])[[1]]){1}else{0}
   clean.df[i,'snow'] <- if(clean.df[i,'profondeur_neige'] > 0){1}else{0}
 }
-
-clean.df[1,'profondeur_neige']
 
 # Tests de holiday qui n'ont pas marché
   #isHoliday('Canada',as.Date(clean.df[100,'Date.s']))[[1]]
