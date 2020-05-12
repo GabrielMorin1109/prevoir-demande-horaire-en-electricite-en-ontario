@@ -305,6 +305,7 @@ clean.df <- hour.df
 clean.df$Day <- day(clean.df$Date.s)
 clean.df$weekday <- wday(clean.df$Date.s)
 
+
 for(i in 1:nrow(clean.df)){
   clean.df[i,'Weekend'] <- if(isWeekend(clean.df[i,'Date.s'])[[1]]){1}else{0}
 }
@@ -316,24 +317,31 @@ for(i in 1:nrow(clean.df)){
 
 clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
 
-cores <- 6
-cl <- makeCluster(cores)
-registerDoParallel(cores)
-getDoParWorkers() # Just checking, how many workers you have
+{
+  cores <- 6
+  cl <- makeCluster(cores)
+  registerDoParallel(cores)
+  getDoParWorkers() # Just checking, how many workers you have 
+}
 
-model6 <- randomForest(Load_Mw~.,data=clean.df,subset=train,importance=T,ntree=500)
+model6 <- randomForest(Load_Mw~.,data=clean.df,subset=train,importance=T,ntree=50)
 
 stopCluster(cl)
 
 importance(model6)
-pred.rf.3 <- predict(model6,newdata=clean.df[-train,])
-MSE.rf.3 <- mean((pred.rf.3-clean.df[-train,'Load_Mw'])^2)
-sqrt(MSE.rf.3)
+
+
+{
+  pred.rf.3 <- predict(model6,newdata=clean.df[-train,])
+  MSE.rf.3 <- mean((pred.rf.3-clean.df[-train,'Load_Mw'])^2)
+  sqrt(MSE.rf.3) 
+}
 
 new_data <- clean.df[-train,]
 plot(new_data[1:100,'Load_Mw'],type='l')
 lines(pred.rf.3[1:100],col='red')
 
+new_data[1:100,]
 
 # Modele7 : random forest avec database en format ts ----
 
