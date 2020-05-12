@@ -326,16 +326,25 @@ lines(pred.rf.2[1:100],col='red')
 stopCluster(cl)
 
 
-# Modele 6 : Random Forest mais avec une base de donnee clean
+# Modele 6 : Random Forest mais avec une base de donnee clean ----
 hour.df
 clean.df <- hour.df
 clean.df$Day <- day(clean.df$Date.s)
 clean.df$weekday <- wday(clean.df$Date.s)
 
-for(i in 1:nrow(clean.df)){
-  clean.df[i,'Weekend'] <- if(isWeekend(clean.df[i,'Date.s'])[[1]]){1}else{0}
+# for(i in 1:nrow(clean.df)){
+#   clean.df[i,'Weekend'] <- if(isWeekend(clean.df[i,'Date.s'])[[1]]){1}else{0}
+#   clean.df[i,'snow'] <- if(clean.df[i,'profondeur_neige'] > 0){1}else{0}
+# }
+
+{
+  clean.df$Weekend <- clean.df$snow <- rep(0, nrow(clean.df))
+  clean.df$snow[which(clean.df$profondeur_neige > 0)] <- 1
+  clean.df$Weekend[which(isWeekend(clean.df$Date.s))] <- 1
 }
 
+
+clean.df[1,'profondeur_neige']
 
 # Tests de holiday qui n'ont pas marché
   #isHoliday('Canada',as.Date(clean.df[100,'Date.s']))[[1]]
@@ -343,26 +352,33 @@ for(i in 1:nrow(clean.df)){
 
 clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
 
-cores <- 6
-cl <- makeCluster(cores)
-registerDoParallel(cores)
-getDoParWorkers() # Just checking, how many workers you have
+{
+  cores <- 6
+  cl <- makeCluster(cores)
+  registerDoParallel(cores)
+  getDoParWorkers() # Just checking, how many workers you have 
+}
 
-model6 <- randomForest(Load_Mw~.,data=clean.df,subset=train,importance=T,ntree=500)
+model6 <- randomForest(Load_Mw~.,data=clean.df,subset=train,importance=T,ntree=50)
 
 stopCluster(cl)
 
 importance(model6)
-pred.rf.3 <- predict(model6,newdata=clean.df[-train,])
-MSE.rf.3 <- mean((pred.rf.3-clean.df[-train,'Load_Mw'])^2)
-sqrt(MSE.rf.3)
+
+
+{
+  pred.rf.3 <- predict(model6,newdata=clean.df[-train,])
+  MSE.rf.3 <- mean((pred.rf.3-clean.df[-train,'Load_Mw'])^2)
+  sqrt(MSE.rf.3) 
+}
 
 new_data <- clean.df[-train,]
 plot(new_data[1:100,'Load_Mw'],type='l')
 lines(pred.rf.3[1:100],col='red')
 
+new_data[1:100,]
 
-# Modele7 : random forest avec database en format ts ----
+# Modele 7 : random forest avec database en format ts ----
 
 # **** MEILLEUR MODELE A PRESENT ****
 clean.test.ts <- ts(clean.df,start=c(2003,1),end=c(2016,12),freq=24*365.5)
