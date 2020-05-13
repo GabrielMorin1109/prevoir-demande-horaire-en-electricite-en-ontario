@@ -2,19 +2,21 @@
 # Library ----
 {
   list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod",
-                        "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table", "bestglm",
-                        "xts", "forecast", "tseries", # for time series object
-                        "corrgram",#correlation gram, semblable a acf
-                        "opera", #package arthur
-                        "keras", # info sur son utilisation: https://www.datacamp.com/community/tutorials/keras-r-deep-learning
-                        "tensorflow",
-                        'tree', # pour faire des arbres
-                        'randomForest', 
-                        'doParallel', "foreach",
-                        'timeDate',
-                        'bestglm',
-                        'chron'
-  )
+                "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table", "bestglm",
+                "xts", "forecast", "tseries", # for time series object
+                "corrgram",#correlation gram, semblable a acf
+                "opera", #package arthur
+                "keras", # info sur son utilisation: https://www.datacamp.com/community/tutorials/keras-r-deep-learning
+                "tensorflow",
+                'tree', # pour faire des arbres
+                'randomForest', 
+                'doParallel', "foreach",
+                'timeDate',
+                'bestglm',
+                'chron',
+                'rjson'
+                )
+
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages) > 0) {install.packages(new.packages, dependencies = T, quiet =T, repos='https://cran.rstudio.com/')}
   for(package_name in list.of.packages) {library(package_name,character.only=TRUE, quietly = TRUE)}
@@ -29,7 +31,7 @@
 #####################################################################################################################################################################
 #####################################################################################################################################################################
 
-# Dowload des bases de donnees
+# Dowload des bases de donnees ----
 # hourly_demand
 hd.df <- read.csv(paste0(getwd(),'/Database/hourly_demand.csv'),sep=';', encoding = "UTF-8")
 str(hd.df)
@@ -42,8 +44,15 @@ colnames(ad.df) <- c('Year','Secteur','Load_PJ','locaux','eau','electro','eclair
 # hourly_weather
 w.df <- read.csv(paste0(getwd(),'/Database/hourly_weather.csv'),sep=';', encoding = "UTF-8")
 str(w.df)
+
+# Sunshine
+#getwd()
+#sun.df <- fromJSON(file = paste0(getwd(),'/Database/sunshine.json'))
+#print(sun.df)
+#sun.df$result$spatial
+
 #-----
-w.df[c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date))),]
+#w.df[c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date))),]
 
 
 # arrangement des dates
@@ -62,12 +71,24 @@ str(hd.df)
 }
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Arrangement des doublons 
+
+{ # Pour la valid
+  w.dup.df <- w.df[c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date))),]
+  w.dup.df <- w.dup.df[order(c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date)))),]
+} 
+
 w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm()
 # which(is.na(w.df$Date.s))
 w.df <- w.df[,!colnames(w.df) %in% "Date"] # pour ne pas creer de confusion entre les bases de donnees
 w.df <- aggregate(w.df, by = list(w.df$Date.s), mean)
 
 identical(length(w.df$Date.s), length(unique(w.df$Date.s))) # All work!!
+
+{
+  mean(w.dup.df[c(1,2),2]) == w.df[as.numeric(rownames(w.dup.df))[1],2] # OK
+}
+
+
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # MERGE des bases de donnees weather et demande aux heures 
 #  on remarque que les bases de donnees ont des differences:
@@ -77,6 +98,16 @@ list(w.df.dif = which(!(hd.df$Date.s %in% w.df$Date.s)) %>% hd.df$Date.s[.],
 hour.I.df <- merge(hd.df, w.df, by = "Date.s", all.x=T)  # On va merge les 2 df par heure pour faciliter les modeles
 which(is.na(hour.I.df)) %>% hour.I.df[.,]
 # On retire les donnees ou Load_Mw est NA
+{
+  identical(length(unique(hd.df$Date.s)),nrow(hd.df))
+  identical(length(unique(w.df$Date.s)),nrow(w.df))
+  nrow(hd.df) - nrow(w.df) # Je m'attend a 14 NA dans le merge
+  length(which(is.na(hour.I.df$temperature))) # En effet, il y a 14 NA dans la temperature, enlevons ces lignes (la 15e ligne ca doit etre a cause des heures qui fit pas) 
+}
+
+hour.I.df <- hour.I.df[which(!is.na(hour.I.df$temperature)),]
+sum(is.na(hour.I.df))
+
 hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %in% c("Date",
                                                                                      "Group.1")])
 # hour.I.df$Date.s <- force_tz(hour.I.df$Date.s,"America/Toronto")
@@ -205,7 +236,7 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 
 # plot(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."],type='l') # ne fonctionne pas, aucune colonne de nom Total.Energy.Use.from.Electricity..MW.
 # lines(hd.df[hd.df$Hour ==2,"Total.Energy.Use.from.Electricity..MW."],col='red')
-hd.df[hd.df$Total.Energy.Use.from.Electricity..MW. == min(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."]) & hd.df$Hour==1, ] 
+#hd.df[hd.df$Total.Energy.Use.from.Electricity..MW. == min(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."]) & hd.df$Hour==1, ] 
 
 
 # hd.df[hd.df$Date == '15-août-03' | hd.df$Date == '14-août-03',] # ne fonctionne pas 
@@ -219,7 +250,7 @@ hd.df[hd.df$Total.Energy.Use.from.Electricity..MW. == min(hd.df[hd.df$Hour==1,"T
 train <- 1:(ceiling(0.7*nrow(hour.df)))
 
 
-plot(x=hour.df$temperature)
+plot(x=hour.df$temperature,y=hour.df$Load_Mw)
 
 {
   # Modele 1 : Base sur cet article (https://freakonometrics.hypotheses.org/52081) 
@@ -343,9 +374,10 @@ clean.df$weekday <- wday(clean.df$Date.s)
 # }
 
 {
-  clean.df$Weekend <- clean.df$snow <- rep(0, nrow(clean.df))
+  clean.df$Weekend <- clean.df$snow <- clean.df$dummy_temp <- rep(0, nrow(clean.df))
   clean.df$snow[which(clean.df$profondeur_neige > 0)] <- 1
   clean.df$Weekend[which(isWeekend(clean.df$Date.s))] <- 1
+  clean.df$dummy_temp[which(clean.df$temperature > 20)] <- 1
 }
 
 # Tests de holiday qui n'ont pas marché
@@ -387,76 +419,79 @@ lines(pred.rf.3[1:100],col='red')
 
 new_data[1:100,]
 
-# Modele 7 : random forest avec database en format ts ----
-
-# **** MEILLEUR MODELE A PRESENT ****
-clean.test.ts <- ts(clean.df,start=c(2003,1),end=c(2016,12),freq=24*365.5)
-
-
 {
-  cores <- 6
-  cl <- makeCluster(cores)
-  registerDoParallel(cores)
-  getDoParWorkers() 
-}
+  # Modele 7 : random forest avec database en format ts 
+  
+  clean.test.ts <- ts(clean.df,start=c(2003,1),end=c(2016,12),freq=24*365.5)
+  
+  
+  {
+    cores <- 6
+    cl <- makeCluster(cores)
+    registerDoParallel(cores)
+    getDoParWorkers() 
+  }
+  
+  model7 <- randomForest(Load_Mw~.,data=clean.test.ts,subset=train,importance=T,ntree=50)
+  
+  stopCluster(cl) 
+  
+  
+  importance(model7)
+  
+  {
+    pred.rf.3 <- predict(model7,newdata=clean.test.ts[-train,])
+    MSE.rf.3 <- mean((pred.rf.3-clean.test.ts[-train,'Load_Mw'])^2)
+    sqrt(MSE.rf.3) # Plus bas qu'avec le data.frame, ce modele est donc meilleur!
+  }
+  
+  
+  new_data <- clean.test.ts[-train,]
+  plot(new_data[100:200,'Load_Mw'],type='l')
+  lines(pred.rf.3[100:200],col='red')
+  
+  # Modele 8 : Random forest en format ts test 2 --
+  
+  clean.test.ts
+  
+  clean.2.ts <- clean.test.ts[,-which(colnames(clean.test.ts) %in% c('Hour','Year','Month','Day'))]
+  
+  {
+    cores <- 6
+    cl <- makeCluster(cores)
+    registerDoParallel(cores)
+    getDoParWorkers() 
+  }
+  
+  model8 <- randomForest(Load_Mw~.,data=clean.2.ts,subset=train,importance=T,ntree=50)
+  
+  stopCluster(cl) 
+  
+  importance(model8)
+  
+  {
+    pred.rf.3 <- predict(model8,newdata=clean.2.ts[-train,])
+    MSE.rf.3 <- mean((pred.rf.3-clean.2.ts[-train,'Load_Mw'])^2)
+    sqrt(MSE.rf.3) # Plus bas qu'avec le data.frame, ce modele est donc meilleur!
+  }
+  
+  
+  new_data <- clean.2.ts[-train,]
+  plot(new_data[1:100,'Load_Mw'],type='l')
+  lines(pred.rf.3[1:100],col='red')
+  # Pas tres bon finalement, on va rester avec le model7
+  
+  
+  
+  
+  # Modele 6.gm, bestglm ———— NE FONTIONNE PAS!! --- 
+  {hour.y.df <- hour.df
+    hour.y.df$y <- hour.y.df$Load_Mw
+    hour.y.df <- hour.y.df[,!colnames(hour.y.df) %in% c("Load_Mw", "Hour", "Year")]
+  }
+  hour.y.df %>% str()
+  best.hour.y.df <- bestglm(Xy = hour.y.df, family = exponential, IC = "AIC", method = "exhaustive")  
+} # ABANDONS
 
-model7 <- randomForest(Load_Mw~.,data=clean.test.ts,subset=train,importance=T,ntree=50)
-
-stopCluster(cl) 
-
-importance(model7)
-
-{
-  pred.rf.3 <- predict(model7,newdata=clean.test.ts[-train,])
-  MSE.rf.3 <- mean((pred.rf.3-clean.test.ts[-train,'Load_Mw'])^2)
-  sqrt(MSE.rf.3) # Plus bas qu'avec le data.frame, ce modele est donc meilleur!
-}
-
-
-new_data <- clean.test.ts[-train,]
-plot(new_data[100:200,'Load_Mw'],type='l')
-lines(pred.rf.3[100:200],col='red')
-
-# Modele 8 : Random forest en format ts test 2 ----
-
-clean.test.ts
-
-clean.2.ts <- clean.test.ts[,-which(colnames(clean.test.ts) %in% c('Hour','Year','Month','Day'))]
-
-{
-  cores <- 6
-  cl <- makeCluster(cores)
-  registerDoParallel(cores)
-  getDoParWorkers() 
-}
-
-model8 <- randomForest(Load_Mw~.,data=clean.2.ts,subset=train,importance=T,ntree=50)
-
-stopCluster(cl) 
-
-importance(model8)
-
-{
-  pred.rf.3 <- predict(model8,newdata=clean.2.ts[-train,])
-  MSE.rf.3 <- mean((pred.rf.3-clean.2.ts[-train,'Load_Mw'])^2)
-  sqrt(MSE.rf.3) # Plus bas qu'avec le data.frame, ce modele est donc meilleur!
-}
-
-
-new_data <- clean.2.ts[-train,]
-plot(new_data[1:100,'Load_Mw'],type='l')
-lines(pred.rf.3[1:100],col='red')
-# Pas tres bon finalement, on va rester avec le model7
-
-
-
-
-# Modele 6.gm, bestglm ———— NE FONTIONNE PAS!! --- 
-{hour.y.df <- hour.df
-  hour.y.df$y <- hour.y.df$Load_Mw
-  hour.y.df <- hour.y.df[,!colnames(hour.y.df) %in% c("Load_Mw", "Hour", "Year")]
-}
-hour.y.df %>% str()
-best.hour.y.df <- bestglm(Xy = hour.y.df, family = exponential, IC = "AIC", method = "exhaustive")
 
 
