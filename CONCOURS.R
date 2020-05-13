@@ -31,7 +31,7 @@
 #####################################################################################################################################################################
 #####################################################################################################################################################################
 
-# Dowload des bases de donnees
+# Dowload des bases de donnees ----
 # hourly_demand
 hd.df <- read.csv(paste0(getwd(),'/Database/hourly_demand.csv'),sep=';', encoding = "UTF-8")
 str(hd.df)
@@ -44,8 +44,15 @@ colnames(ad.df) <- c('Year','Secteur','Load_PJ','locaux','eau','electro','eclair
 # hourly_weather
 w.df <- read.csv(paste0(getwd(),'/Database/hourly_weather.csv'),sep=';', encoding = "UTF-8")
 str(w.df)
+
+# Sunshine
+#getwd()
+#sun.df <- fromJSON(file = paste0(getwd(),'/Database/sunshine.json'))
+#print(sun.df)
+#sun.df$result$spatial
+
 #-----
-w.df[c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date))),]
+#w.df[c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date))),]
 
 
 # arrangement des dates
