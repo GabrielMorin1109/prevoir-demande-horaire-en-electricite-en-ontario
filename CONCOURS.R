@@ -2,7 +2,7 @@
 # Library ----
 {
   list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod",
-                "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table", "bestglm",
+                "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table", "bestglm", 'dplyr',
                 "xts", "forecast", "tseries", # for time series object
                 "corrgram",'nlme', #correlation gram, semblable a acf
                 "opera", #package arthur
@@ -227,10 +227,21 @@ clean.df <- hour.df
 clean.df$Day <- day(clean.df$Date.s)
 clean.df$weekday <- wday(clean.df$Date.s)
 
-# for(i in 1:nrow(clean.df)){
-#   clean.df[i,'Weekend'] <- if(isWeekend(clean.df[i,'Date.s'])[[1]]){1}else{0}
-#   clean.df[i,'snow'] <- if(clean.df[i,'profondeur_neige'] > 0){1}else{0}
-# }
+mean_by_wday.df <- with(clean.df,aggregate(Load_Mw,by=list(weekday,Hour),FUN=mean))
+colnames(mean_by_wday.df) <- c('weekday','Hour','Load_Mw')
+mean_by_wday.df$ID_mean_by_wday <- paste(mean_by_wday.df$Hour,mean_by_wday.df$weekday,sep='-')
+clean.df$ID_mean_by_wday <- paste(clean.df$Hour,clean.df$weekday,sep='-')
+
+merge(clean.df,mean_by_wday.df,by='ID_mean_by_wday',all.x=T)
+left_join(clean.df,mean_by_wday.df,by='ID_mean_by_wday')
+
+
+for(i in 1:nrow(clean.df)){
+  for(j in 1:nrow(mean_by_wday.df)){
+    clean.df[i,'Mean_by_wday'] <- if(clean.df[i,'Hour']==mean_by_wday.df[j,'Hour'] & clean.df[i,'weekday'] == mean_by_wday.df[j,'weekday']){mean_by_wday.df[j,'Load_Mw']}
+  }
+}
+
 
 {
   clean.df$Weekend <- clean.df$snow <- clean.df$dummy_temp <- rep(0, nrow(clean.df))
