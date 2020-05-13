@@ -13,7 +13,8 @@
                 'doParallel', "foreach",
                 'timeDate',
                 'bestglm',
-                'chron'
+                'chron',
+                'rjson'
                 )
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages) > 0) {install.packages(new.packages, dependencies = T, quiet =T, repos='https://cran.rstudio.com/')}
@@ -62,12 +63,24 @@ str(hd.df)
 }
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Arrangement des doublons 
+
+{ # Pour la valid
+  w.dup.df <- w.df[c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date))),]
+  w.dup.df <- w.dup.df[order(c(which(duplicated(w.df$Date))-1,which(duplicated(w.df$Date)))),]
+} 
+
 w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm()
 # which(is.na(w.df$Date.s))
 w.df <- w.df[,!colnames(w.df) %in% "Date"] # pour ne pas creer de confusion entre les bases de donnees
 w.df <- aggregate(w.df, by = list(w.df$Date.s), mean)
 
 identical(length(w.df$Date.s), length(unique(w.df$Date.s))) # All work!!
+
+{
+  mean(w.dup.df[c(1,2),2]) == w.df[as.numeric(rownames(w.dup.df))[1],2] # OK
+}
+
+
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # MERGE des bases de donnees weather et demande aux heures 
 #  on remarque que les bases de donnees ont des differences:
@@ -77,6 +90,16 @@ list(w.df.dif = which(!(hd.df$Date.s %in% w.df$Date.s)) %>% hd.df$Date.s[.],
 hour.I.df <- merge(hd.df, w.df, by = "Date.s", all.x=T)  # On va merge les 2 df par heure pour faciliter les modeles
 which(is.na(hour.I.df)) %>% hour.I.df[.,]
 # On retire les donnees ou Load_Mw est NA
+{
+  identical(length(unique(hd.df$Date.s)),nrow(hd.df))
+  identical(length(unique(w.df$Date.s)),nrow(w.df))
+  nrow(hd.df) - nrow(w.df) # Je m'attend a 14 NA dans le merge
+  length(which(is.na(hour.I.df$temperature))) # En effet, il y a 14 NA dans la temperature, enlevons ces lignes (la 15e ligne ca doit etre a cause des heures qui fit pas) 
+}
+
+hour.I.df <- hour.I.df[which(!is.na(hour.I.df$temperature)),]
+sum(is.na(hour.I.df))
+
 hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %in% c("Date",
                                                                                      "Group.1")])
 # hour.I.df$Date.s <- force_tz(hour.I.df$Date.s,"America/Toronto")
@@ -205,7 +228,7 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 
 # plot(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."],type='l') # ne fonctionne pas, aucune colonne de nom Total.Energy.Use.from.Electricity..MW.
 # lines(hd.df[hd.df$Hour ==2,"Total.Energy.Use.from.Electricity..MW."],col='red')
-hd.df[hd.df$Total.Energy.Use.from.Electricity..MW. == min(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."]) & hd.df$Hour==1, ] 
+#hd.df[hd.df$Total.Energy.Use.from.Electricity..MW. == min(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."]) & hd.df$Hour==1, ] 
 
 
 # hd.df[hd.df$Date == '15-août-03' | hd.df$Date == '14-août-03',] # ne fonctionne pas 
@@ -219,7 +242,7 @@ hd.df[hd.df$Total.Energy.Use.from.Electricity..MW. == min(hd.df[hd.df$Hour==1,"T
 
 train <- 1:(ceiling(0.7*nrow(hour.df)))
 
-plot(x=hour.df$temperature)
+plot(x=hour.df$temperature,y=hour.df$Load_Mw)
 
 {
   # Modele 1 : Base sur cet article (https://freakonometrics.hypotheses.org/52081) 
@@ -336,9 +359,10 @@ clean.df$Day <- day(clean.df$Date.s)
 clean.df$weekday <- wday(clean.df$Date.s)
 
 {
-  clean.df$Weekend <- clean.df$snow <- rep(0, nrow(clean.df))
+  clean.df$Weekend <- clean.df$snow <- clean.df$dummy_temp <- rep(0, nrow(clean.df))
   clean.df$snow[which(clean.df$profondeur_neige > 0)] <- 1
   clean.df$Weekend[which(isWeekend(clean.df$Date.s))] <- 1
+  clean.df$dummy_temp[which(clean.df$temperature > 20)] <- 1
 }
 
 # Tests de holiday qui n'ont pas marché
@@ -412,7 +436,6 @@ new_data[1:100,]
   plot(new_data[100:200,'Load_Mw'],type='l')
   lines(pred.rf.3[100:200],col='red')
 } # MODEL7 : comme le 6 mais avec base de donnee en format ts
-
 
 {
   # Modele 8 : Random forest en format ts test 2 
