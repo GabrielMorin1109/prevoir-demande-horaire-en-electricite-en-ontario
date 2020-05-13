@@ -13,7 +13,7 @@
                 'timeDate',
                 'bestglm',
                 'chron',
-                'rjson'
+                'hutilscpp'
                 )
 
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -222,33 +222,48 @@ corrgram(hour.ts)
 # Donc, decroissance relativement faible ici, mais significative.
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # CLEAN.df ----
-hour.df
+
 clean.df <- hour.df
+
+# On ajoute le jour du mois
 clean.df$Day <- day(clean.df$Date.s)
+
+# On ajoute le jour de la semaine
 clean.df$weekday <- wday(clean.df$Date.s)
 
-mean_by_wday.df <- with(clean.df,aggregate(Load_Mw,by=list(weekday,Hour),FUN=mean))
-colnames(mean_by_wday.df) <- c('weekday','Hour','Load_Mw')
-mean_by_wday.df$ID_mean_by_wday <- paste(mean_by_wday.df$Hour,mean_by_wday.df$weekday,sep='-')
-clean.df$ID_mean_by_wday <- paste(clean.df$Hour,clean.df$weekday,sep='-')
-
-merge(clean.df,mean_by_wday.df,by='ID_mean_by_wday',all.x=T)
-left_join(clean.df,mean_by_wday.df,by='ID_mean_by_wday')
-
-
-for(i in 1:nrow(clean.df)){
-  for(j in 1:nrow(mean_by_wday.df)){
-    clean.df[i,'Mean_by_wday'] <- if(clean.df[i,'Hour']==mean_by_wday.df[j,'Hour'] & clean.df[i,'weekday'] == mean_by_wday.df[j,'weekday']){mean_by_wday.df[j,'Load_Mw']}
-  }
+# On ajoute la moyenne de consommation par jour de la semaine par heure
+{ 
+  mean_by_wday.df <- with(clean.df,aggregate(Load_Mw,by=list(weekday,Hour),FUN=mean))
+  colnames(mean_by_wday.df) <- c('weekday','Hour','mean_by_wday_Mw')
+  mean_by_wday.df$ID_mean_by_wday <- paste(mean_by_wday.df$Hour,mean_by_wday.df$weekday,sep='-')
+  clean.df$ID_mean_by_wday <- paste(clean.df$Hour,clean.df$weekday,sep='-')
+  clean.df <- left_join(clean.df,mean_by_wday.df,by='ID_mean_by_wday',suffix=c('','.y'))
+  clean.df <- clean.df[,-which(colnames(clean.df) %in% c('ID_mean_by_wday','weekday.y','Hour.y'))]
 }
 
-
+# On ajoute la moyenne de consommation par jour de l'annee par heure
 {
-  clean.df$Weekend <- clean.df$snow <- clean.df$dummy_temp <- rep(0, nrow(clean.df))
-  clean.df$snow[which(clean.df$profondeur_neige > 0)] <- 1
-  clean.df$Weekend[which(isWeekend(clean.df$Date.s))] <- 1
-  clean.df$dummy_temp[which(clean.df$temperature > 20)] <- 1
+  clean.df$year_day <- yday(clean.df$Date.s)
+  mean_by_year.df <- with(clean.df,aggregate(Load_Mw,by=list(year_day),FUN=mean))
+  colnames(mean_by_year.df) <- c('year_day','mean_by_yearday_Mw')
+  clean.df <- left_join(clean.df,mean_by_year.df,by='year_day')
 }
+
+# On ajoute une dummy pour le weekend
+{
+  clean.df$Weekend <- rep(0, nrow(clean.df))
+  clean.df$Weekend[which(isWeekend(clean.df$Date.s))] <- 1
+}
+
+# On ajoute une dummy lundi-mardi-mercredi
+{
+  clean.df$lun_mar_mer <- rep(0, nrow(clean.df))
+  clean.df$lun_mar_mer[which(clean.df$weekday %in% c(2,3,4))] <- 1
+}
+
+
+
+
 clean.df$temperature.18 <- abs(clean.df$temperature-18)
 cumsum(clean.df$temperature.18)
 temp.test <- rep(0, nrow(clean.df))
@@ -258,6 +273,20 @@ temp.test[which(temp.test==0)] <- -1
 cumsum(clean.df$temperature.18*temp.test)
 lm(Load_Mw~ bs(temperature.18,3), clean.df[which(clean.df$temperature.18<0),])  %>% plot()
 plot(clean.df$temperature.18[which(clean.df$temperature.18<0)], clean.df$Load_Mw[which(clean.df$temperature.18<0)])
+
+{
+  #clean.df$under_18_logical <- rep(F, nrow(clean.df))
+  #clean.df[which(clean.df$temperature < 18),'under_18_logical'] <- T
+  #clean.df$under_18_dummy <- rep(0, nrow(clean.df))
+  #clean.df[which(clean.df$temperature < 18),'under_18_dummy'] <- 1
+  #clean.df$cumsum_under_18 <- cumsum_reset(clean.df$under_18_logical,clean.df$under_18_dummy)
+  #clean.df <- 
+}
+
+
+View(clean.df[which(clean.df$Month==6),])
+View(clean.df[1:1000,])
+
 
 
 isHoliday(x=as.Date(hour.df$Date.s),holidays='Canada/TSX')
@@ -440,8 +469,8 @@ importance(model6)
 }
 
 new_data <- clean.df[-train,]
-plot(new_data[1:(24*7),'Load_Mw'],type='l')
-lines(pred.rf[1:(24*7)],col='red')
+plot(new_data[(24*7):(2*24*7),'Load_Mw'],type='l')
+lines(pred.rf[(24*7):(2*24*7)],col='red')
 
 new_data[1:100,]
 
