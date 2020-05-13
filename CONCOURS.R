@@ -16,6 +16,7 @@
                 'chron',
                 'rjson'
                 )
+
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages) > 0) {install.packages(new.packages, dependencies = T, quiet =T, repos='https://cran.rstudio.com/')}
   for(package_name in list.of.packages) {library(package_name,character.only=TRUE, quietly = TRUE)}
@@ -131,9 +132,9 @@ hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %i
     purrr::map2(ad.ls, sum.year.conso,
                 ~sapply(1:nrow(.x),function(i){
                   .x$Load_PJ[i]/.y
-                  }) %>% 
+                }) %>% 
                   {cbind(.x, proportion.conso = .)}
-                )
+    )
   ad.p.df <- prop.conso.ls %>% reduce(rbind)
 }
 {
@@ -145,11 +146,11 @@ hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %i
       {.[.$Year == as.numeric(my.year),!colnames(.) %in% c("Year", "Secteur")]} %>%  #/ nrow(hour.ls[[my.year]])}
       {.[,"proportion.conso"]}
     tmp
-                                          # cbind(hour.ls[[my.year]], 
-                                          #       ad.p.df[ad.p.df$Secteur == "Residentiel",] %>% 
-                                          #         {.[.$Year == as.numeric(my.year),!colnames(.) %in% c("Year", "Secteur")]} %>%  #/ nrow(hour.ls[[my.year]])}
-                                          #         {.[,"proportion.conso"]}
-                                          #       )
+    # cbind(hour.ls[[my.year]], 
+    #       ad.p.df[ad.p.df$Secteur == "Residentiel",] %>% 
+    #         {.[.$Year == as.numeric(my.year),!colnames(.) %in% c("Year", "Secteur")]} %>%  #/ nrow(hour.ls[[my.year]])}
+    #         {.[,"proportion.conso"]}
+    #       )
   }) %>% reduce(bind_rows)
 }
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -160,9 +161,9 @@ hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %i
 
 ###
 hour.ts <-  ts(hour.df,
-                 start= c(2003,1,1),#decimal_date(ymd_hms("2003-01-01 01:00:00")), #hour.I.df[1,'Date.s']
-                 end = c(2016,12,31), #decimal_date(ymd_hms("2016-12-31 23:00:00")), # hour.I.df[nrow(hour.I.df),'Date.s']),
-                 frequency=24*365/12) # saison = 1 mois ici
+               start= c(2003,1,1),#decimal_date(ymd_hms("2003-01-01 01:00:00")), #hour.I.df[1,'Date.s']
+               end = c(2016,12,31), #decimal_date(ymd_hms("2016-12-31 23:00:00")), # hour.I.df[nrow(hour.I.df),'Date.s']),
+               frequency=24*365/12) # saison = 1 mois ici
 cycle(hour.ts)
 hour.year.ts <- ts(hour.df,
                    start= c(2003,1,1),
@@ -175,7 +176,7 @@ hour_Mw.ts <- ts(hour.df$Load_Mw, start= c(2003,1,1), end = c(2016,12,31), frequ
 hour_Mw.ts %>% decompose() %>% plot
 hour.year.ts %>% decompose %>% plot
 hour_Mw.ts %>% decompose(type = "multiplicative") %>% plot
-  # plot(hour.ts.multi)
+# plot(hour.ts.multi)
 # adf.test(diff(hour_Mw.ts), alternative="stationary", k=0) # on rejette l'hypothese null que la tim serie est stationnaire
 
 plot(hour.year.ts[,"Load_Mw"])
@@ -205,11 +206,11 @@ corrgram(hour.ts)
 # Mesure s'il y a une constance dans la serie (aka, une non croissance p/r au temps)
 # plot(lm(Load_Mw~Date.s, data = hour.df))# %>% summary()
 {plot(hour.df$Date.s, hour.df$Load_Mw,pch='.')
-lm.fit <- lm(Load_Mw~Date.s, data = hour.df)
-x.interval <- seq(min(hour.df$Date.s), max(hour.df$Date.s), by = "hour") 
-abline(lm.fit, col = "red")
-legend('topright', legend = paste0(c("pente : ", as.character(lm.fit$coefficients["Date.s"]))), bty = 'n')
-lm.fit %>% summary()}
+  lm.fit <- lm(Load_Mw~Date.s, data = hour.df)
+  x.interval <- seq(min(hour.df$Date.s), max(hour.df$Date.s), by = "hour") 
+  abline(lm.fit, col = "red")
+  legend('topright', legend = paste0(c("pente : ", as.character(lm.fit$coefficients["Date.s"]))), bty = 'n')
+  lm.fit %>% summary()}
 
 
 # Donc, decroissance relativement faible ici, mais significative.
@@ -239,8 +240,8 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 # M O D E L E S
 
 # On va utiliser 70% des donnees pour le training :
-
 train <- 1:(ceiling(0.7*nrow(hour.df)))
+
 
 plot(x=hour.df$temperature,y=hour.df$Load_Mw)
 
@@ -358,6 +359,11 @@ clean.df <- hour.df
 clean.df$Day <- day(clean.df$Date.s)
 clean.df$weekday <- wday(clean.df$Date.s)
 
+# for(i in 1:nrow(clean.df)){
+#   clean.df[i,'Weekend'] <- if(isWeekend(clean.df[i,'Date.s'])[[1]]){1}else{0}
+#   clean.df[i,'snow'] <- if(clean.df[i,'profondeur_neige'] > 0){1}else{0}
+# }
+
 {
   clean.df$Weekend <- clean.df$snow <- clean.df$dummy_temp <- rep(0, nrow(clean.df))
   clean.df$snow[which(clean.df$profondeur_neige > 0)] <- 1
@@ -366,8 +372,8 @@ clean.df$weekday <- wday(clean.df$Date.s)
 }
 
 # Tests de holiday qui n'ont pas marché
-  #isHoliday('Canada',as.Date(clean.df[100,'Date.s']))[[1]]
-  #isHoliday(x=as.Date(clean.df$Date.s),holidays='Canada/TSX')
+#isHoliday('Canada',as.Date(clean.df[100,'Date.s']))[[1]]
+#isHoliday(x=as.Date(clean.df$Date.s),holidays='Canada/TSX')
 
 clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
 
@@ -378,18 +384,17 @@ clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
     registerDoParallel(cores)
     getDoParWorkers() # Just checking, how many workers you have 
   }
-
+  
   model6 <- foreach(ntree=rep(floor(50/cores), cores), .combine=randomForest::combine,
                     .multicombine=TRUE, .packages='randomForest') %dopar% {
                       randomForest(Load_Mw~.,data=clean.df,
                                    subset=train,
                                    importance=T,
                                    ntree=ntree)
-                      }
+                    }
   
   stopCluster(cl)
 }
-
 importance(model6)
 
 
@@ -406,9 +411,8 @@ lines(pred.rf.3[1:100],col='red')
 new_data[1:100,]
 
 {
-  # Modele 7 : random forest avec database en format ts ----
+  # Modele 7 : random forest avec database en format ts 
   
-  # **** MEILLEUR MODELE A PRESENT ****
   clean.test.ts <- ts(clean.df,start=c(2003,1),end=c(2016,12),freq=24*365.5)
   
   
@@ -423,6 +427,7 @@ new_data[1:100,]
   
   stopCluster(cl) 
   
+  
   importance(model7)
   
   {
@@ -435,10 +440,8 @@ new_data[1:100,]
   new_data <- clean.test.ts[-train,]
   plot(new_data[100:200,'Load_Mw'],type='l')
   lines(pred.rf.3[100:200],col='red')
-} # MODEL7 : comme le 6 mais avec base de donnee en format ts
-
-{
-  # Modele 8 : Random forest en format ts test 2 
+  
+  # Modele 8 : Random forest en format ts test 2 --
   
   clean.test.ts
   
@@ -472,13 +475,13 @@ new_data[1:100,]
   
   
   
-  # Modele 6.gm, bestglm ———— NE FONTIONNE PAS!! 
+  # Modele 6.gm, bestglm ———— NE FONTIONNE PAS!! --- 
   {hour.y.df <- hour.df
     hour.y.df$y <- hour.y.df$Load_Mw
     hour.y.df <- hour.y.df[,!colnames(hour.y.df) %in% c("Load_Mw", "Hour", "Year")]
   }
   hour.y.df %>% str()
-  best.hour.y.df <- bestglm(Xy = hour.y.df, family = exponential, IC = "AIC", method = "exhaustive")
+  best.hour.y.df <- bestglm(Xy = hour.y.df, family = exponential, IC = "AIC", method = "exhaustive")  
 } # ABANDONS
 
 
