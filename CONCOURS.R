@@ -249,12 +249,23 @@ for(i in 1:nrow(clean.df)){
   clean.df$Weekend[which(isWeekend(clean.df$Date.s))] <- 1
   clean.df$dummy_temp[which(clean.df$temperature > 20)] <- 1
 }
+clean.df$temperature.18 <- abs(clean.df$temperature-18)
+cumsum(clean.df$temperature.18)
+temp.test <- rep(0, nrow(clean.df))
+temp.test <- (clean.df$temperature.18<0)*1
+temp.test[which(temp.test==0)] <- -1
+# replace(clean.df$temperature.18, which((clean.df$temperature.18>0)), NA) %>% cumsum %>% View
+cumsum(clean.df$temperature.18*temp.test)
+lm(Load_Mw~ bs(temperature.18,3), clean.df[which(clean.df$temperature.18<0),])  %>% plot()
+plot(clean.df$temperature.18[which(clean.df$temperature.18<0)], clean.df$Load_Mw[which(clean.df$temperature.18<0)])
+
 
 isHoliday(x=as.Date(hour.df$Date.s),holidays='Canada/TSX')
 
 
 clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
-
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # PREANALYSE: ----
 # Validations 
 nrow(hd.df) == nrow(w.df)
@@ -392,7 +403,9 @@ plot(x=hour.df$temperature,y=hour.df$Load_Mw)
   
 } # ABANDONS
 
-
+#########################################################################################################################################################
+#########################################################################################################################################################
+#########################################################################################################################################################
 # Modele 6 : Random Forest mais avec une base de donnee clean ----
 
 
