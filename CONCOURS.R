@@ -4,12 +4,11 @@
   list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod",
                 "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table", "bestglm",
                 "xts", "forecast", "tseries", # for time series object
-                "corrgram",#correlation gram, semblable a acf
+                "corrgram",'nlme', #correlation gram, semblable a acf
                 "opera", #package arthur
                 "keras", # info sur son utilisation: https://www.datacamp.com/community/tutorials/keras-r-deep-learning
                 "tensorflow",
-                'tree', # pour faire des arbres
-                'randomForest', 
+                'tree', 'randomForest', # pour faire des arbres
                 'doParallel', "foreach",
                 'timeDate',
                 'bestglm',
@@ -200,7 +199,7 @@ HoltWinters(hour_Mw.ts, beta=FALSE, gamma = FALSE) %>% plot()
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Visualisation d'une serie
 acf(hour.df$Load_Mw, lag=24) #autocorrelation par 24h
-acf(hour.df$Load_Mw, lag=24*7*3)
+acf(hour.df$Load_Mw, lag=24*7)
 acf(hour.year.ts[,"Load_Mw"],lag = 24*365)
 acf(hour.ts[,"Load_Mw"])
 pacf(hour_Mw.ts)
@@ -222,6 +221,29 @@ corrgram(hour.ts)
 
 # Donc, decroissance relativement faible ici, mais significative.
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# CLEAN.df ----
+hour.df
+clean.df <- hour.df
+clean.df$Day <- day(clean.df$Date.s)
+clean.df$weekday <- wday(clean.df$Date.s)
+
+# for(i in 1:nrow(clean.df)){
+#   clean.df[i,'Weekend'] <- if(isWeekend(clean.df[i,'Date.s'])[[1]]){1}else{0}
+#   clean.df[i,'snow'] <- if(clean.df[i,'profondeur_neige'] > 0){1}else{0}
+# }
+
+{
+  clean.df$Weekend <- clean.df$snow <- clean.df$dummy_temp <- rep(0, nrow(clean.df))
+  clean.df$snow[which(clean.df$profondeur_neige > 0)] <- 1
+  clean.df$Weekend[which(isWeekend(clean.df$Date.s))] <- 1
+  clean.df$dummy_temp[which(clean.df$temperature > 20)] <- 1
+}
+
+isHoliday(x=as.Date(hour.df$Date.s),holidays='Canada/TSX')
+
+
+clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
+
 # PREANALYSE: ----
 # Validations 
 nrow(hd.df) == nrow(w.df)
@@ -363,29 +385,10 @@ plot(x=hour.df$temperature,y=hour.df$Load_Mw)
 #########################################################################################################################################################
 #########################################################################################################################################################
 # Modele 6 : Random Forest mais avec une base de donnee clean ----
-hour.df
-clean.df <- hour.df
-clean.df$Day <- day(clean.df$Date.s)
-clean.df$weekday <- wday(clean.df$Date.s)
 
-# for(i in 1:nrow(clean.df)){
-#   clean.df[i,'Weekend'] <- if(isWeekend(clean.df[i,'Date.s'])[[1]]){1}else{0}
-#   clean.df[i,'snow'] <- if(clean.df[i,'profondeur_neige'] > 0){1}else{0}
-# }
-
-{
-  clean.df$Weekend <- clean.df$snow <- clean.df$dummy_temp <- rep(0, nrow(clean.df))
-  clean.df$snow[which(clean.df$profondeur_neige > 0)] <- 1
-  clean.df$Weekend[which(isWeekend(clean.df$Date.s))] <- 1
-  clean.df$dummy_temp[which(clean.df$temperature > 20)] <- 1
-}
 
 # Tests de holiday qui n'ont pas marché
 #isHoliday('Canada',as.Date(clean.df[100,'Date.s']))[[1]]
-#isHoliday(x=as.Date(clean.df$Date.s),holidays='Canada/TSX')
-
-clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
-
 {
   {
     cores <- if(detectCores()==8){7} else {11}
@@ -408,16 +411,34 @@ importance(model6)
 
 
 {
-  pred.rf.3 <- predict(model6,newdata=clean.df[-train,])
-  MSE.rf.3 <- mean((pred.rf.3-clean.df[-train,'Load_Mw'])^2)
-  sqrt(MSE.rf.3) 
+  pred.rf <- predict(model6,newdata=clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')])
+  res <- pred.rf - clean.df[-train,'Load_Mw']
+  MSE.rf <- mean(res^2)
+  sqrt(MSE.rf) 
 }
 
 new_data <- clean.df[-train,]
-plot(new_data[1:100,'Load_Mw'],type='l')
-lines(pred.rf.3[1:100],col='red')
+plot(new_data[1:(24*7),'Load_Mw'],type='l')
+lines(pred.rf[1:(24*7)],col='red')
 
 new_data[1:100,]
+
+new_data[1:(24*7),]
+
+test <- with(clean.df,aggregate(Load_Mw,by=list(Hour,weekday),mean))
+test2 <- with(clean.df,aggregate(Load_Mw,by=list(Hour,weekday),quantile))
+plot(test$x,type='l')
+nrow(hour.df)
+
+# acf des residus :
+acf(res,lag=24)
+acf(res,lag=24*7) # Nos residus ont l'air corrélés pas mal...
+
+plot(clean.df[-train,'Load_Mw'],res)
+
+#corAR1(acf(res,lag=1,plot=F)$acf[2],form=~.)
+
+
 
 {
   # Modele 7 : random forest avec database en format ts 
