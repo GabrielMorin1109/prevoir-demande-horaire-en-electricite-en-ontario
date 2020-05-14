@@ -13,7 +13,8 @@
                 'timeDate',
                 'bestglm',
                 'chron',
-                'hutilscpp' #cumsum_reset
+                'hutilscpp', #cumsum_reset
+                'RQuantLib'
                 )
 
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -290,15 +291,32 @@ clean.df$weekday <- wday(clean.df$Date.s)
 }
 
 # Difference avec temperature moyenne du mois ----
-temp_month_mean.df <- with(clean.df,aggregate(temperature,by=list(Month),mean))
-colnames(temp_month_mean.df) <- c('Month','Mean_temp_Month')
-clean.df <- left_join(clean.df,temp_month_mean.df,by='Month',suffix=c('','.y'))
-clean.df$diff_mean_temp_month <- clean.df$temperature - clean.df$Mean_temp_Month
-clean.df <- clean.df[,-which(colnames(clean.df) %in% 'Mean_temp_Month')]
+{
+  temp_month_mean.df <- with(clean.df,aggregate(temperature,by=list(Month),mean))
+  colnames(temp_month_mean.df) <- c('Month','Mean_temp_Month')
+  clean.df <- left_join(clean.df,temp_month_mean.df,by='Month',suffix=c('','.y'))
+  clean.df$diff_mean_temp_month <- clean.df$temperature - clean.df$Mean_temp_Month
+  clean.df <- clean.df[,-which(colnames(clean.df) %in% 'Mean_temp_Month')] 
+}
 
 
 # holiday ----
-clean.df$holiday <- isHoliday(x=timeDate(clean.df$Date.s),holidays='Canada/TSX')*1
+#clean.df$holiday <- isHoliday(x=timeDate(clean.df$Date.s),holidays='TSX')*1
+
+# liste de tous les conges feries selon le calendrier TSX. Il manque seulement family day & le boxing day est pas exact (quand ca tombe un samedi ou un dimanche c'est reporte)
+holidays <- c(as.POSIXct(holiday(2003:2016,'NewYearsDay'),tz='UTC'),
+              as.POSIXct(holiday(2003:2016, "GoodFriday"),tz='UTC'),
+              as.POSIXct(holiday(2003:2016, "CAVictoriaDay"),tz='UTC'),
+              as.POSIXct(holiday(2003:2016, "CACanadaDay"),tz='UTC'),
+              as.POSIXct(holiday(2003:2016, "CACivicProvincialHoliday"),tz='UTC'),
+              as.POSIXct(holiday(2003:2016, "CALabourDay"),tz='UTC'),
+              as.POSIXct(holiday(2003:2016, "CAThanksgivingDay"),tz='UTC'),
+              as.POSIXct(holiday(2003:2016, "ChristmasDay"),tz='UTC'),
+              as.POSIXct(holiday(2003:2016, "BoxingDay"),tz='UTC'))
+
+clean.df$holiday <- rep(0,nrow(clean.df))
+clean.df$holiday[which(as.POSIXct(date(clean.df$Date.s)) %in% holidays)] <- 1
+
 
 # heure souper ----
 clean.df$souper <- (clean.df$Hour>=17 & clean.df$Hour<=21)*1
@@ -501,6 +519,10 @@ new_data <- clean.df[-train,]
 
 plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],type='l')
 lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2013)],col='red')
+
+quantile(abs(res))[4]
+
+View(new_data[which(abs(res) > quantile(abs(res))[4]),])
 
 new_data[5:(24*7 + 5),]
 new_data[which(new_data$Month == 10 & new_data$Year == 2013),]
