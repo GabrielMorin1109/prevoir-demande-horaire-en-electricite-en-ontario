@@ -246,8 +246,9 @@ clean.df$weekday <- wday(clean.df$Date.s)
 # weekend ----
 {
   clean.df$Weekend <- rep(0, nrow(clean.df))
-  clean.df$Weekend[which(isWeekend(clean.df$Date.s))] <- 1
+  clean.df$Weekend[which(clean.df$weekday %in% c(1,7))] <- 1
 }
+
 
 # Temperature ----
 {
@@ -304,43 +305,138 @@ clean.df$weekday <- wday(clean.df$Date.s)
 #clean.df$holiday <- isHoliday(x=timeDate(clean.df$Date.s),holidays='TSX')*1
 
 # liste de tous les conges feries selon le calendrier TSX. Il manque seulement family day & le boxing day est pas exact (quand ca tombe un samedi ou un dimanche c'est reporte)
-holidays <- c(as.POSIXct(holiday(2003:2016,'NewYearsDay'),tz='UTC'),
-              as.POSIXct(holiday(2003:2016, "GoodFriday"),tz='UTC'),
-              as.POSIXct(holiday(2003:2016, "CAVictoriaDay"),tz='UTC'),
-              as.POSIXct(holiday(2003:2016, "CACanadaDay"),tz='UTC'),
-              as.POSIXct(holiday(2003:2016, "CACivicProvincialHoliday"),tz='UTC'),
-              as.POSIXct(holiday(2003:2016, "CALabourDay"),tz='UTC'),
-              as.POSIXct(holiday(2003:2016, "CAThanksgivingDay"),tz='UTC'),
-              as.POSIXct(holiday(2003:2016, "ChristmasDay"),tz='UTC'),
-              as.POSIXct(holiday(2003:2016, "BoxingDay"),tz='UTC'))
-
-clean.df$holiday <- rep(0,nrow(clean.df))
-clean.df$holiday[which(as.POSIXct(date(clean.df$Date.s)) %in% holidays)] <- 1
+{
+  holidays <- c(as.POSIXct(holiday(2003:2016,'NewYearsDay'),tz='UTC'),
+                as.POSIXct(c('2003-02-17','2004-02-16','2005-02-21','2006-02-20','2007-02-19','2008-02-18','2009-02-19','2010-02-15','2011-02-21','2012-02-20','2013-02-18','2014-02-17','2015-02-16','2016-02-15'),tz='UTC'),
+                as.POSIXct(holiday(2003:2016, "GoodFriday"),tz='UTC'),
+                as.POSIXct(holiday(2003:2016, "CAVictoriaDay"),tz='UTC'),
+                as.POSIXct(holiday(2003:2016, "CACanadaDay"),tz='UTC'),
+                as.POSIXct(holiday(2003:2016, "CACivicProvincialHoliday"),tz='UTC'),
+                as.POSIXct(holiday(2003:2016, "CALabourDay"),tz='UTC'),
+                as.POSIXct(holiday(2003:2016, "CAThanksgivingDay"),tz='UTC'),
+                as.POSIXct(holiday(2003:2016, "ChristmasDay"),tz='UTC'),
+                as.POSIXct(holiday(2003:2016, "BoxingDay"),tz='UTC'))
+  
+  clean.df$holiday <- rep(0,nrow(clean.df))
+  clean.df$holiday[which(as.POSIXct(date(clean.df$Date.s)) %in% holidays)] <- 1
+}
 
 
 # heure souper ----
-clean.df$souper <- (clean.df$Hour>=17 & clean.df$Hour<=21)*1
+#clean.df$souper <- (clean.df$Hour>=17 & clean.df$Hour<=21)*1
 
 # jours different ----
 #clean.df$Day.of.the.week <- (clean.df$weekday>=17 & clean.df$Hour<=21)*1
 
-#clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
+# Load_Pj de l'annee d'avant
+prev_year <- ad.df[which(ad.df$Secteur == 'Residentiel'),c('Year','Load_PJ')]
+colnames(prev_year) <- c('Year','Prev_Year_Load_Pj')
+clean.df <- left_join(clean.df,prev_year,by='Year')
+
+ad.df
+clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Analyse des variables explicatives ----
 
 colnames(clean.df)
 
 # Hour
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[1])],y=clean.df$Load_Mw)
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[1])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[1])
+# *****
 
 # Year
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[3])],y=clean.df$Load_Mw)
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[3])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[3])
+# ****
 
 # Month
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[4])],y=clean.df$Load_Mw)
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[4])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[4])
+# ****
 
+# precipitation
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[5])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[5])
+# Peu de lien
 
+# temperature
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[6])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[6])
+# *****
 
+# irradiance_surface
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[7])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[7])
+# Aucun lien
+
+# irradiance_sommet_atmosphere
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[8])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[8])
+# Aucun lien
+
+# chute.de.neige
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[9])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[9])
+# Peu de lien
+
+# profondeur_neige
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[10])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[10])
+#Peu de lien
+
+# couverture_nuage
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[11])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[11])
+# Aucun lien
+
+# densite_air
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[12])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[12])
+# *****
+
+# Day
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[13])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[13])
+# Aucun lien
+
+# weekday
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[14])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[14])
+# Petit lien
+
+# mean_by_wday_MW
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[15])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[15])
+# Grand lien!!
+
+# year_day
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[16])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[16])
+# Grand lien
+
+# mean_by_yearday_Mw
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[17])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[17])
+# Peu de lien
+
+# Weekend
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[18])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[18])
+# Petit lien
+
+# integer_chauffage
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[19])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[19])
+# lien!
+
+# integer_climatisation
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[20])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[20])
+# lien!
+
+# diff_mean_temp_month
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[21])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[21])
+# Aucun lien
+
+# holiday
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[22])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[22])
+# Lien
+
+plot(with(clean.df,aggregate(Load_Mw,by=list(Year),mean)),type='l')
+
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[23])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[23])
+
+#clean.df <- clean.df[,-which(colnames(clean.df) %in% c('precipitation',
+                                                       #'irradiance_surface',
+                                                      # 'irradiance_sommet_atmosphere',
+                                                       #'chute.de.neige',
+                                                      # 'profondeur_neige',
+                                                      # 'couverture_nuage',
+                                                      # 'densite_air',
+                                                      # 'Day',
+                                                       #'diff_mean_temp_month'))]
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -520,12 +616,15 @@ new_data <- clean.df[-train,]
 plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],type='l')
 lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2013)],col='red')
 
-quantile(abs(res))[4]
 
-View(new_data[which(abs(res) > quantile(abs(res))[4]),])
-
-new_data[5:(24*7 + 5),]
-new_data[which(new_data$Month == 10 & new_data$Year == 2013),]
+mauvais_res.df <- new_data[which(abs(res) > quantile(abs(res))[4]),]
+table(mauvais_res.df$Hour)
+table(mauvais_res.df$Year)
+table(mauvais_res.df$Month)
+table(mauvais_res.df$Hour,mauvais_res.df$Month)
+table(mauvais_res.df$Day)
+table(mauvais_res.df$weekday)
+table(mauvais_res.df$holiday)
 
 
 
@@ -542,6 +641,21 @@ plot(clean.df[-train,'Load_Mw'],res)
 
 #corAR1(acf(res,lag=1,plot=F)$acf[2],form=~.)
 
+
+# Pour voir les variables pertinentes
+reg <- glm(Load_Mw~.,subset = train,clean.df,family='gaussian')
+summary(reg)
+
+plot(predict(reg),col='red')
+lines(clean.df$Load_Mw)
+
+reg2 <- step(reg,scale=0,trace=F)
+summary(reg2)
+
+pred.rf <- predict(reg2,newdata=clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')])
+res <- pred.rf - clean.df[-train,'Load_Mw']
+MSE.rf <- mean(res^2)
+sqrt(MSE.rf) 
 
 
 {
