@@ -13,7 +13,7 @@
                 'timeDate',
                 'bestglm',
                 'chron',
-                'rjson'
+                'hutilscpp'
                 )
 
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -216,27 +216,30 @@ corrgram(hour.ts)
 # Donc, decroissance relativement faible ici, mais significative.
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # CLEAN.df ----
-hour.df
 clean.df <- hour.df
+
+# On ajoute le jour du mois
 clean.df$Day <- day(clean.df$Date.s)
+
+# On ajoute le jour de la semaine
 clean.df$weekday <- wday(clean.df$Date.s)
 
-mean_by_wday.df <- with(clean.df,aggregate(Load_Mw,by=list(weekday,Hour),FUN=mean))
-colnames(mean_by_wday.df) <- c('weekday','Hour','Load_Mw')
-mean_by_wday.df$ID_mean_by_wday <- paste(mean_by_wday.df$Hour,mean_by_wday.df$weekday,sep='-')
-clean.df$ID_mean_by_wday <- paste(clean.df$Hour,clean.df$weekday,sep='-')
-  
-# test <- merge(clean.df,mean_by_wday.df,by='ID_mean_by_wday',all.x=T)
+# On ajoute la moyenne de consommation par jour de la semaine par heure
+{ 
+  mean_by_wday.df <- with(clean.df,aggregate(Load_Mw,by=list(weekday,Hour),FUN=mean))
+  colnames(mean_by_wday.df) <- c('weekday','Hour','mean_by_wday_Mw')
+  mean_by_wday.df$ID_mean_by_wday <- paste(mean_by_wday.df$Hour,mean_by_wday.df$weekday,sep='-')
+  clean.df$ID_mean_by_wday <- paste(clean.df$Hour,clean.df$weekday,sep='-')
+  clean.df <- left_join(clean.df,mean_by_wday.df,by='ID_mean_by_wday',suffix=c('','.y'))
+  clean.df <- clean.df[,-which(colnames(clean.df) %in% c('ID_mean_by_wday','weekday.y','Hour.y', "Load_Mw.y"))]
+}
 
-clean.df <- left_join(clean.df,mean_by_wday.df,by='ID_mean_by_wday')
-clean.df <- clean.df[,!colnames(clean.df) %in% c("Hour.y", "Load_Mw.y", "weekday.y","ID_mean_by_wday")]
-names(clean.df) <- names(clean.df) %>% gsub(".x","",.)
-
+# On ajoute la moyenne de consommation par jour de l'annee par heure
 {
-  clean.df$Weekend <- clean.df$snow <- rep(0, nrow(clean.df))
-  clean.df$snow[which(clean.df$profondeur_neige > 0)] <- 1
-  clean.df$Weekend[which(isWeekend(clean.df$Date.s))] <- 1
-  # clean.df$dummy_temp[which(clean.df$temperature > 20)] <- 1
+  clean.df$year_day <- yday(clean.df$Date.s)
+  mean_by_year.df <- with(clean.df,aggregate(Load_Mw,by=list(year_day),FUN=mean))
+  colnames(mean_by_year.df) <- c('year_day','mean_by_yearday_Mw')
+  clean.df <- left_join(clean.df,mean_by_year.df,by='year_day')
 }
 
 
@@ -447,9 +450,9 @@ importance(model6)
 }
 
 new_data <- clean.df[-train,]
-plot(new_data[1:(24*7*2),'Load_Mw'],type='l')
-lines(pred.rf[1:(24*7*2)],col='red')
 
+plot(new_data[(24*7):(2*24*7),'Load_Mw'],type='l')
+lines(pred.rf[(24*7):(2*24*7)],col='red')
 
 
 new_data[1:100,]
