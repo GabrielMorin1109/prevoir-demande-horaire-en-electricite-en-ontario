@@ -448,7 +448,7 @@ plot(x=hour.df$temperature,y=hour.df$Load_Mw)
     getDoParWorkers() # Just checking, how many workers you have 
   }
   
-  model6 <- foreach(ntree=rep(floor(50/cores), cores), .combine=randomForest::combine,
+  model6 <- foreach(ntree=rep(floor(500/cores), cores), .combine=randomForest::combine,
                     .multicombine=TRUE, .packages='randomForest') %dopar% {
                       randomForest(Load_Mw~.,data=clean.df,
                                    subset=train,
@@ -469,15 +469,15 @@ importance(model6)
 }
 
 new_data <- clean.df[-train,]
-plot(new_data[(24*7):(2*24*7),'Load_Mw'],type='l')
-lines(pred.rf[(24*7):(2*24*7)],col='red')
+plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],type='l')
+lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2013)],col='red')
 
-new_data[1:100,]
+new_data[5:(24*7 + 5),]
+new_data[which(new_data$Month == 10 & new_data$Year == 2013),]
 
-new_data[1:(24*7),]
 
-test <- with(clean.df,aggregate(Load_Mw,by=list(Hour,weekday),mean))
-test2 <- with(clean.df,aggregate(Load_Mw,by=list(Hour,weekday),quantile))
+test <- with(clean.df,aggregate(Load_Mw,by=list(weekday,Month),mean))
+test2 <- with(clean.df,aggregate(Load_Mw,by=list(weekday,Month),quantile))
 plot(test$x,type='l')
 nrow(hour.df)
 
