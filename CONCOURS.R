@@ -1,7 +1,7 @@
 # options(java.parameters = "-Xmx8000m") #afin de donner plus de heap space a java
 # Library ----
 {
-  list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod",
+  list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod", "gam", 
                 "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table", "bestglm", 'dplyr',
                 "xts", "forecast", "tseries", # for time series object
                 "corrgram",'nlme', #correlation gram, semblable a acf
@@ -246,11 +246,17 @@ clean.df$weekday <- wday(clean.df$Date.s)
 # Temperature ----
 {
   clean.df$temperature.18 <- clean.df$temperature-18
+  
+  
+  test <- gam(Load_Mw~bs(temperature.18), data = clean.df)
+  summary(test)
+  plot(test)
+  
   clean.df$Signal <- sign(clean.df$temperature.18)
   df <- as.data.table(clean.df)
   df[,cum.temp := cumsum(temperature.18)*Signal,.(rleid(Signal))] #pas besoin de l'enregistrer dans une autre variable df
   clean.df <- as.data.frame(df)
-  clean.df <- clean.df[,!colnames(clean.df)%in% c("Signal","temperature.18")]
+  clean.df <- clean.df[,!colnames(clean.df)%in% c("Signal")]
 }
 # cumsum(clean.df$temperature.18)
 # temp.test <- rep(0, nrow(clean.df))
@@ -272,7 +278,7 @@ clean.df$holiday <- isHoliday(x=timeDate(clean.df$Date.s),holidays='Canada/TSX')
 clean.df$souper <- (clean.df$Hour>=17 & clean.df$Hour<=21)*1
 
 # jours different ----
-clean.df$Day.of.the.week <- (clean.df$weekday>=17 & clean.df$Hour<=21)*1
+# clean.df$Day.of.the.week <- (clean.df$weekday>=17 & clean.df$Hour<=21)*1
 
 clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -423,7 +429,7 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 #isHoliday('Canada',as.Date(clean.df[100,'Date.s']))[[1]]
 {
   {
-    cores <- if(detectCores()==8){7} else {11}
+    cores <- if(detectCores()==8){7} else {18}
     cl <- makeCluster(cores)
     registerDoParallel(cores)
     getDoParWorkers() # Just checking, how many workers you have 
@@ -450,9 +456,9 @@ importance(model6)
 }
 
 new_data <- clean.df[-train,]
-
-plot(new_data[(24*7):(2*24*7),'Load_Mw'],type='l')
-lines(pred.rf[(24*7):(2*24*7)],col='red')
+which(new_data$Month == 10 & new_data$Year == 2013) %>% 
+  {plot(new_data[.,'Load_Mw'],type='l')
+  lines(pred.rf[.],col='red')}
 
 
 new_data[1:100,]
