@@ -326,15 +326,19 @@ clean.df$weekday <- wday(clean.df$Date.s)
 
 # Octobre ----
 # clean.df$octobre <- 
-clean.octobre.ls <- clean.df[clean.df$Month == 3,] %>% split(.,.$Year)
 
-for(i in seq_along(clean.octobre.ls)){
-  if(i==1) {
-    clean.octobre.ls[[i]] %>% {plot(.$Load_Mw, .$Date.s)}
-  } else {
-    clean.octobre.ls[[i]] %>% {plot(.$Load_Mw, .$Date.s, add=T)}
-  }
-}
+
+library(ggplot2)
+temp <- clean.df[clean.df$Month == 10,]
+ggplot(temp, aes(x=Month, y=Date.s, group=Year)) + geom_line()
+
+                              # for(i in seq_along(clean.octobre.ls)){
+                              #   if(i==1) {
+                              #     clean.octobre.ls[[i]] %>% {plot(.$Load_Mw, .$Date.s)}
+                              #   } else {
+                              #     clean.octobre.ls[[i]] %>% {plot(.$Load_Mw, .$Date.s, add=T)}
+                              #   }
+                              # }
 # heure souper 
 #clean.df$souper <- (clean.df$Hour>=17 & clean.df$Hour<=21)*1
 
