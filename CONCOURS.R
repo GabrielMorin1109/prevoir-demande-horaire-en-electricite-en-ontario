@@ -650,12 +650,11 @@ importance(model6)
 # test, finalement beaucoup trop long a rouler
 
 
-pige <- sample.int(nrow(new_data)-7,1)
-data.plot <- (pige-7):pige
-
-which(new_data$Month == 10 & new_data$Year == 2013) %>% 
+{pige <- sample.int(nrow(new_data)-7*24,1)
+data.plot <- pige:(pige+7*24)
+data.plot %>% 
   {plot(new_data[.,'Load_Mw'],type='l')
-  lines(pred.rf[.],col='red')}
+  lines(pred.rf[.],col='red')}}
 
 
 plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],type='l')
