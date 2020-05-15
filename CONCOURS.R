@@ -330,7 +330,26 @@ clean.df$weekday <- wday(clean.df$Date.s)
 
 library(ggplot2)
 temp <- clean.df[clean.df$Month == 10,]
-ggplot(temp, aes(x=Month, y=Date.s, group=Year)) + geom_line()
+ggplot(temp, aes(x=Year, y=Load_Mw, group=Year)) + geom_line()
+# ggplot(clean.df, aes(x=temperature, y=Load_Mw, group=Year)) + geom_line()
+# aggregate(clean.df, 
+temp.min <- with(clean.df,aggregate(temperature,by=list(as.Date(Date.s)),min))
+temp.max <- with(clean.df,aggregate(temperature,by=list(as.Date(Date.s)),max))
+
+# my.Load_Mw.mean.day <- with(clean.df,aggregate(Load_Mw, by=list(as.Date(Day)),max))
+
+temp <- cbind(temp.min = temp.min$x,
+      temp.max = temp.max$x) %>% as.data.frame()
+
+{
+  plot(temp.min$Group.1, 
+       temp.min$x, 
+        ylim = c(-30,30),
+        type="l"
+        )
+  lines(temp.min$Group.1, temp.max$x, col = "red")
+  lines(temp.min$Group.1, with(clean.df,aggregate(temperature,by=list(as.Date(Date.s)),mean))$x, col = "blue")
+}
 
                               # for(i in seq_along(clean.octobre.ls)){
                               #   if(i==1) {
@@ -699,9 +718,8 @@ for(i in 1:4) {
 # data.plot %>% 
   # {plot(pred.rf[.],col='red', type = "l")}
 
-30957: 31125
-plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],type='l')
-lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2013)],col='red')
+# plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],type='l')
+# lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2013)],col='red')
 
 
 
