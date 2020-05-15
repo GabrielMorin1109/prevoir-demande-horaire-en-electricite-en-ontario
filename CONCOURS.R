@@ -586,13 +586,19 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 
 {
   {
-    cores <- if(detectCores()==8){7} else {18}
+    if(detectCores()==8){
+      cores <- 7
+      num.of.tree <- 50
+    } else {
+      cores <- 12
+      num.of.tree <- 500
+        }
     cl <- makeCluster(cores)
     registerDoParallel(cores)
     getDoParWorkers() # Just checking, how many workers you have 
   }
   
-  model6 <- foreach(ntree=rep(floor(50/cores), cores), .combine=randomForest::combine,
+  model6 <- foreach(ntree=rep(floor(num.of.tree/cores), cores), .combine=randomForest::combine,
                     .multicombine=TRUE, .packages='randomForest') %dopar% {
                       randomForest(Load_Mw~.,data= na.omit(clean.df),
                                    subset=train,
