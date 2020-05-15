@@ -14,8 +14,8 @@
                 'bestglm',
                 'chron',
                 'hutilscpp', #cumsum_reset
-                'RQuantLib',
-                'rfUtilities' #Pour la cross validation de rf
+                # 'RQuantLib',
+                'rfUtilities', #Pour la cross validation de rf
                 'hutilscpp'#, #cumsum_reset
                 # 'RQuantLib'
                 )
@@ -646,17 +646,26 @@ importance(model6)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Tests et validations
 
-#model6.cv <- rf.crossValidation(model6,clean.df[train,-which(colnames(clean.df)=='Load_Mw')],p=0.10, n=99, ntree=500)
+# model6.cv <- rf.crossValidation(model6,clean.df[train,-which(colnames(clean.df)=='Load_Mw')],p=0.10, n=99, ntree=500)
 # test, finalement beaucoup trop long a rouler
 
 
-{pige <- sample.int(nrow(new_data)-7*24,1)
-data.plot <- pige:(pige+7*24)
+for(i in 1:10) {
+  pige <- sample.int(nrow(new_data)-7*24,1)
+  data.plot <- pige:(pige+7*24)
+  data.plot %>% pred.rf[.] %>% 
+    {plot(.,col='red', type = "l",
+          ylim=c(min(.),max(.)))};
+  data.plot %>% 
+    {lines(new_data[.,'Load_Mw'],type='l')}#,type='l')};
+  data.plot %>% 
+    {paste0(as.character(first(.)),":", 
+            as.character(last(.)))} %>% title()
+}
 data.plot %>% 
-  {plot(new_data[.,'Load_Mw'],type='l')
-  lines(pred.rf[.],col='red')}}
+  {plot(pred.rf[.],col='red', type = "l")}
 
-
+30957: 31125
 plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],type='l')
 lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2013)],col='red')
 
