@@ -15,9 +15,8 @@
                 'chron',
                 'hutilscpp', #cumsum_reset
                 'RQuantLib',
-                'rfUtilities' #Pour la cross validation de rf
+                'rfUtilities', #Pour la cross validation de rf
                 'hutilscpp'#, #cumsum_reset
-                # 'RQuantLib'
                 )
 
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -48,6 +47,8 @@ colnames(ad.df) <- c('Year','Secteur','Load_PJ','locaux','eau','electro','eclair
 w.df <- read.csv(paste0(getwd(),'/Database/hourly_weather.csv'),sep=';', encoding = "UTF-8")
 str(w.df)
 
+price.df <- read.csv(paste0(getwd(),'/Database/price_of_electricity.csv'),sep=';', encoding = "UTF-8")
+
 # Sunshine
 #getwd()
 #sun.df <- fromJSON(file = paste0(getwd(),'/Database/sunshine.json'))
@@ -71,6 +72,10 @@ str(hd.df)
 { # de meme pour le weather
   w.df[,2:ncol(w.df)] <-  # correction des variables numeriques avec des "," en var num avec des "."
     sapply(w.df[,2:ncol(w.df)], function(my.df){as.numeric(gsub(",", ".", my.df))})
+}
+{ # de meme pour le price
+  price.df[,3:ncol(price.df)] <-  # correction des variables numeriques avec des "," en var num avec des "."
+    sapply(price.df[,3:ncol(price.df)], function(my.df){as.numeric(gsub(",", ".", my.df))})
 }
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Arrangement des doublons 
@@ -338,7 +343,8 @@ clean.df$weekday <- wday(clean.df$Date.s)
 #clean.df <- left_join(clean.df,prev_year,by='Year')
 
 
-# Enlevons le blackout de 2003 qui est clairement une donnee aberante
+# Enlevons le blackout de 2003 qui est clairement une donnee aberante ----
+
 #plot(clean.df$Load_Mw,type='l')
 #date_of_blackout <- clean.df %>% filter(Load_Mw == min(Load_Mw)) %>% dplyr::select(Date.s)
 #date_of_blackout <-date(date_of_blackout[1,1])
@@ -347,8 +353,60 @@ clean.df$weekday <- wday(clean.df$Date.s)
 
 clean.df <- clean.df[-which(as.POSIXct(date(clean.df$Date.s)) %in% c(as.POSIXct('2003-08-14',tz='UTC'),as.POSIXct('2003-08-15',tz='UTC'))),]
 
+# Variable mean_Load_Mw_by_temp
+#plot(x=clean.df$temperature,y=clean.df$Load_Mw,xlim=c(-30,-10)) # Pas mal stable entre -30 et -10
+#plot(x=clean.df$temperature,y=clean.df$Load_Mw,xlim=c(-10,0)) # Pas mal stable entre -10 et -0
+#plot(x=clean.df$temperature,y=clean.df$Load_Mw,xlim=c(0,10)) # Pas mal stable entre 0 et 10
+#plot(x=clean.df$temperature,y=clean.df$Load_Mw,xlim=c(10,15)) # Pas mal stable entre 10 et 15
+#plot(x=clean.df$temperature,y=clean.df$Load_Mw,xlim=c(15,20)) # Pas mal stable entre 15 et 20
+#plot(x=clean.df$temperature,y=clean.df$Load_Mw,xlim=c(20,25)) 
+#plot(x=clean.df$temperature,y=clean.df$Load_Mw,xlim=c(25,30)) 
+#plot(x=clean.df$temperature,y=clean.df$Load_Mw,xlim=c(30,40)) 
+
+# On va creer notre variable groups
+{
+  clean.df$group_of_temperature <- rep(NA,nrow(clean.df))
+  clean.df$group_of_temperature[which(clean.df$temperature>=(-30)&clean.df$temperature<(-10))] <- '[-30,-10)'
+  clean.df$group_of_temperature[which(clean.df$temperature>=(-10)&clean.df$temperature<0)] <- '[-10,0)'
+  clean.df$group_of_temperature[which(clean.df$temperature>=(0)&clean.df$temperature<(10))] <- '[0,10)'
+  clean.df$group_of_temperature[which(clean.df$temperature>=10&clean.df$temperature<15)] <- '[10,15)'
+  clean.df$group_of_temperature[which(clean.df$temperature>=(15)&clean.df$temperature<(20))] <- '[15,20)'
+  clean.df$group_of_temperature[which(clean.df$temperature>=(20)&clean.df$temperature<(25))] <- '[20,25)'
+  clean.df$group_of_temperature[which(clean.df$temperature>=(25)&clean.df$temperature<(30))] <- '[25,30)'
+  clean.df$group_of_temperature[which(clean.df$temperature>=(30)&clean.df$temperature<(40))] <- '[30,40)'
+  
+  mean_Load_Mw_by_temp <- with(clean.df,aggregate(Load_Mw,by=list(group_of_temperature),mean))
+  colnames(mean_Load_Mw_by_temp) <- c('group_of_temperature','mean_Load_Mw_by_temp')
+  clean.df <- left_join(clean.df,mean_Load_Mw_by_temp,by='group_of_temperature',suffix=c('','.y'))  
+  clean.df <- clean.df[,-which(colnames(clean.df)=='group_of_temperature')]
+}
+
+
+#reg <- lm(Load_Mw~bs(temperature),clean.df,subset=train)
+#summary(reg)
+#plot(x=clean.df$temperature,y=clean.df$Load_Mw)
+#lines(clean.df$temperature,predict(reg,clean.df),col='red')
+
+# Ajout du prix -- NE MARCHE PAS
+{ 
+  clean.df$ID_year_month <- paste(clean.df$Year,clean.df$Month,sep='-')
+  price.df$Id_year_month <- paste(as.numeric(price.df$Year),as.numeric(price.df$Month),sep='-')
+  #price.df <- price.df[,-which(colnames(price.df) %in% c('Month','Year'))]
+  clean.df <- left_join(clean.df,price.df,by='Id_year_month',suffix=c('','.y'))
+}
+
+merge(clean.df,price.df)
+identical(clean.df$ID_year_month[1],price.df$ID_year_month[1])
+rlang::last_error()
+rlang::last_trace()
+
 # On enleve Date.s pcq cest un identifiant unique sur chaque ligne
 clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
+clean.df <- clean.df[,-which(colnames(clean.df)=='irradiance_surface')]
+clean.df <- clean.df[,-which(colnames(clean.df)=='densite_air')]
+
+plot(clean.df$Load_Mw[which(clean.df$Month == 10 & clean.df$Year == 2003)],type='l')
+lines(clean.df$Load_Mw[which(clean.df$Month == 10 & clean.df$Year == 2004)])
 
 
 
@@ -648,6 +706,8 @@ importance(model6)
 
 #model6.cv <- rf.crossValidation(model6,clean.df[train,-which(colnames(clean.df)=='Load_Mw')],p=0.10, n=99, ntree=500)
 # test, finalement beaucoup trop long a rouler
+#model6.cv <- rf.crossValidation(model6,clean.df[train,-which(colnames(clean.df)=='Load_Mw')],p=1, n=99, ntree=50)
+
 
 which(new_data$Month == 10 & new_data$Year == 2013) %>% 
   {plot(new_data[.,'Load_Mw'],type='l')
@@ -658,7 +718,7 @@ plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],typ
 lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2013)],col='red')
 
 
-
+quantile(clean.df$diff_mean_temp_month)
 
 mauvais_res.df <- new_data[which(abs(res) > quantile(abs(res))[4]),]
 table(mauvais_res.df$Hour)
