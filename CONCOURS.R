@@ -14,7 +14,11 @@
                 'bestglm',
                 'chron',
                 'hutilscpp', #cumsum_reset
+<<<<<<< HEAD
                 'RQuantLib',
+=======
+                # 'RQuantLib',
+>>>>>>> 69c9db6d1aa5f4db7d8fd87e11fe6eb366fc73b0
                 'rfUtilities', #Pour la cross validation de rf
                 'hutilscpp'#, #cumsum_reset
                 )
@@ -169,36 +173,36 @@ train <- 1:(ceiling(0.7*nrow(hour.df)))
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ###
-hour.ts <-  ts(hour.df,
-               start= c(2003,1,1),#decimal_date(ymd_hms("2003-01-01 01:00:00")), #hour.I.df[1,'Date.s']
-               end = c(2016,12,31), #decimal_date(ymd_hms("2016-12-31 23:00:00")), # hour.I.df[nrow(hour.I.df),'Date.s']),
-               frequency=24*365/12) # saison = 1 mois ici
-cycle(hour.ts)
-hour.year.ts <- ts(hour.df,
-                   start= c(2003,1,1),
-                   end = c(2016,12,31),
-                   frequency=24*365)
-time(hour.ts)
-hour_Mw.stl <- stl(hour.ts[,"Load_Mw"], s.window = "period")
-# hour.ts.multi <- decompose(hour.ts,type = "mult")
-hour_Mw.ts <- ts(hour.df$Load_Mw, start= c(2003,1,1), end = c(2016,12,31), frequency=24*365/12)
-hour_Mw.ts %>% decompose() %>% plot
-hour.year.ts %>% decompose %>% plot
-hour_Mw.ts %>% decompose(type = "multiplicative") %>% plot
+# hour.ts <-  ts(hour.df,
+#                start= c(2003,1,1),#decimal_date(ymd_hms("2003-01-01 01:00:00")), #hour.I.df[1,'Date.s']
+#                end = c(2016,12,31), #decimal_date(ymd_hms("2016-12-31 23:00:00")), # hour.I.df[nrow(hour.I.df),'Date.s']),
+#                frequency=24*365/12) # saison = 1 mois ici
+# cycle(hour.ts)
+# hour.year.ts <- ts(hour.df,
+#                    start= c(2003,1,1),
+#                    end = c(2016,12,31),
+#                    frequency=24*365)
+# time(hour.ts)
+# hour_Mw.stl <- stl(hour.ts[,"Load_Mw"], s.window = "period")
+# # hour.ts.multi <- decompose(hour.ts,type = "mult")
+# hour_Mw.ts <- ts(hour.df$Load_Mw, start= c(2003,1,1), end = c(2016,12,31), frequency=24*365/12)
+# hour_Mw.ts %>% decompose() %>% plot
+# hour.year.ts %>% decompose %>% plot
+# hour_Mw.ts %>% decompose(type = "multiplicative") %>% plot
 # plot(hour.ts.multi)
 # adf.test(diff(hour_Mw.ts), alternative="stationary", k=0) # on rejette l'hypothese null que la tim serie est stationnaire
-
-plot(hour.year.ts[,"Load_Mw"])
-plot(hour_Mw.stl)  # top=original data, second=estimated seasonal, third=estimated smooth trend, bottom=estimated irregular element i.e. unaccounted for variation
-monthplot(hour_Mw.stl, choice = "seasonal") 
-
-seasonplot(ts(hour.df$Load_Mw, start= c(2003,1,1), end = c(2016,12,31), frequency=24), year.labels=TRUE)
-seasonplot(ts(hour.df$Load_Mw, start= c(2003,1,1), end = c(2016,12,31), frequency=24*7), year.labels = TRUE)
-
-plot(hour_Mw.stl)
-plot(stl(hour.year.ts[,"Load_Mw"], s.window = "periodic")) # decroissance de la consommation p/r aux annees
-# hour.xts <- xts(hour.df, order.by = hour.df$Date.s)
-HoltWinters(hour_Mw.ts, beta=FALSE, gamma = FALSE) %>% plot()
+# 
+# plot(hour.year.ts[,"Load_Mw"])
+# plot(hour_Mw.stl)  # top=original data, second=estimated seasonal, third=estimated smooth trend, bottom=estimated irregular element i.e. unaccounted for variation
+# monthplot(hour_Mw.stl, choice = "seasonal") 
+# 
+# seasonplot(ts(hour.df$Load_Mw, start= c(2003,1,1), end = c(2016,12,31), frequency=24), year.labels=TRUE)
+# seasonplot(ts(hour.df$Load_Mw, start= c(2003,1,1), end = c(2016,12,31), frequency=24*7), year.labels = TRUE)
+# 
+# plot(hour_Mw.stl)
+# plot(stl(hour.year.ts[,"Load_Mw"], s.window = "periodic")) # decroissance de la consommation p/r aux annees
+# # hour.xts <- xts(hour.df, order.by = hour.df$Date.s)
+# HoltWinters(hour_Mw.ts, beta=FALSE, gamma = FALSE) %>% plot()
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Visualisation d'une serie
 acf(hour.df$Load_Mw, lag=24) #autocorrelation par 24h
@@ -329,8 +333,22 @@ clean.df$weekday <- wday(clean.df$Date.s)
   clean.df$holiday[which(as.POSIXct(date(clean.df$Date.s)) %in% holidays)] <- 1
 }
 
+# Octobre ----
+# clean.df$octobre <- 
 
-# heure souper ----
+
+library(ggplot2)
+temp <- clean.df[clean.df$Month == 10,]
+ggplot(temp, aes(x=Month, y=Date.s, group=Year)) + geom_line()
+
+                              # for(i in seq_along(clean.octobre.ls)){
+                              #   if(i==1) {
+                              #     clean.octobre.ls[[i]] %>% {plot(.$Load_Mw, .$Date.s)}
+                              #   } else {
+                              #     clean.octobre.ls[[i]] %>% {plot(.$Load_Mw, .$Date.s, add=T)}
+                              #   }
+                              # }
+# heure souper 
 #clean.df$souper <- (clean.df$Hour>=17 & clean.df$Hour<=21)*1
 
 # jours different ----
@@ -401,6 +419,7 @@ rlang::last_error()
 rlang::last_trace()
 
 # On enleve Date.s pcq cest un identifiant unique sur chaque ligne
+rownames(clean.df) <- clean.df$Date.s
 clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
 clean.df <- clean.df[,-which(colnames(clean.df)=='irradiance_surface')]
 clean.df <- clean.df[,-which(colnames(clean.df)=='densite_air')]
@@ -704,16 +723,47 @@ importance(model6)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Tests et validations
 
-#model6.cv <- rf.crossValidation(model6,clean.df[train,-which(colnames(clean.df)=='Load_Mw')],p=0.10, n=99, ntree=500)
+# model6.cv <- rf.crossValidation(model6,clean.df[train,-which(colnames(clean.df)=='Load_Mw')],p=0.10, n=99, ntree=500)
 # test, finalement beaucoup trop long a rouler
 #model6.cv <- rf.crossValidation(model6,clean.df[train,-which(colnames(clean.df)=='Load_Mw')],p=1, n=99, ntree=50)
 
 
-which(new_data$Month == 10 & new_data$Year == 2013) %>% 
-  {plot(new_data[.,'Load_Mw'],type='l')
-  lines(pred.rf[.],col='red')}
 
+par(mfrow =c(2,2))
+for(i in 1:4) {
+  pige <- sample.int(nrow(new_data)-7*24,1)
+  data.plot <- pige:(pige+7*24)
+  
+  data.plot %>% pred.rf[.] %>% 
+    {plot(.,col='red', type = "l",
+          ylim=c(min(.),max(.)),
+          xlab =paste0(
+            names(first(.)) %>% as.Date, 
+            "___TO___",
+            names(last(.)) %>% as.Date
+          ) 
+          )
+      };
+  
+  data.plot %>% 
+    {lines(new_data[.,'Load_Mw'],type='l')}#,type='l')};
+  
+  data.plot %>% 
+    {paste0("[",i,"] - ",
+            as.character(first(.)),":", 
+            as.character(last(.)),
+            "   (",
+              new_data$weekday[first(.)], 
+              "__to__", 
+              new_data$weekday[last(.)],
+            ")"
+            )
+      } %>% title()
+}
+# data.plot %>% 
+  # {plot(pred.rf[.],col='red', type = "l")}
 
+30957: 31125
 plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],type='l')
 lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2013)],col='red')
 
