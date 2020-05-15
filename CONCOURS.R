@@ -14,7 +14,8 @@
                 'bestglm',
                 'chron',
                 'hutilscpp', #cumsum_reset
-                'RQuantLib'
+                'RQuantLib',
+                'rfUtilities' #Pour la cross validation de rf
                 )
 
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -333,8 +334,21 @@ clean.df$weekday <- wday(clean.df$Date.s)
 #colnames(prev_year) <- c('Year','Prev_Year_Load_Pj')
 #clean.df <- left_join(clean.df,prev_year,by='Year')
 
-#ad.df
+
+# Enlevons le blackout de 2003 qui est clairement une donnee aberante
+#plot(clean.df$Load_Mw,type='l')
+#date_of_blackout <- clean.df %>% filter(Load_Mw == min(Load_Mw)) %>% dplyr::select(Date.s)
+#date_of_blackout <-date(date_of_blackout[1,1])
+#View(clean.df[which(date(clean.df$Date.s) %in% c(date_of_blackout-1,date_of_blackout,date_of_blackout+1)),])
+# On voit que le blackout a commence le 14 aout 2003 a 16h et se termine le 15 aout 2003. Enlevons ces 2 dates completement
+
+clean.df <- clean.df[-which(as.POSIXct(date(clean.df$Date.s)) %in% c(as.POSIXct('2003-08-14',tz='UTC'),as.POSIXct('2003-08-15',tz='UTC'))),]
+
+# On enleve Date.s pcq cest un identifiant unique sur chaque ligne
 clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
+
+
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Analyse des variables explicatives ----
 
@@ -611,12 +625,20 @@ importance(model6)
   sqrt(MSE.rf) 
 }
 
-new_data <- clean.df[-train,]
 
-plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],type='l')
-lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2013)],col='red')
+{
+  new_data <- clean.df[-train,]
+  plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],type='l')
+  lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2013)],col='red')  
+}
 
-step(model6,trace=F)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Tests et validations
+
+#model6.cv <- rf.crossValidation(model6,clean.df[train,-which(colnames(clean.df)=='Load_Mw')],p=0.10, n=99, ntree=500)
+# test, finalement beaucoup trop long a rouler
+
 
 mauvais_res.df <- new_data[which(abs(res) > quantile(abs(res))[4]),]
 table(mauvais_res.df$Hour)
