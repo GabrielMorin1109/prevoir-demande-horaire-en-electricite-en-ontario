@@ -1,21 +1,23 @@
 # options(java.parameters = "-Xmx8000m") #afin de donner plus de heap space a java
 # Library ----
 {
-  list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod",
+  list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod", "gam", 
                 "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table", "bestglm", 'dplyr',
                 "xts", "forecast", "tseries", # for time series object
                 "corrgram",'nlme', #correlation gram, semblable a acf
                 "opera", #package arthur
-                "keras", # info sur son utilisation: https://www.datacamp.com/community/tutorials/keras-r-deep-learning
-                "tensorflow",
+                # "keras", # info sur son utilisation: https://www.datacamp.com/community/tutorials/keras-r-deep-learning
+                # "tensorflow",
                 'tree', 'randomForest', # pour faire des arbres
-                'doParallel', "foreach",
+                'doParallel', "foreach", "parallel",
                 'timeDate',
                 'bestglm',
                 'chron',
                 'hutilscpp', #cumsum_reset
                 'RQuantLib',
                 'rfUtilities' #Pour la cross validation de rf
+                'hutilscpp'#, #cumsum_reset
+                # 'RQuantLib'
                 )
 
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -327,6 +329,7 @@ clean.df$weekday <- wday(clean.df$Date.s)
 #clean.df$souper <- (clean.df$Hour>=17 & clean.df$Hour<=21)*1
 
 # jours different ----
+
 #clean.df$Day.of.the.week <- (clean.df$weekday>=17 & clean.df$Hour<=21)*1
 
 # Load_Pj de l'annee d'avant
@@ -599,13 +602,19 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 
 {
   {
-    cores <- if(detectCores()==8){7} else {11}
+    if(detectCores()==8){
+      cores <- 7
+      num.of.tree <- 50
+    } else {
+      cores <- 12
+      num.of.tree <- 500
+        }
     cl <- makeCluster(cores)
     registerDoParallel(cores)
     getDoParWorkers() # Just checking, how many workers you have 
   }
   
-  model6 <- foreach(ntree=rep(floor(50/cores), cores), .combine=randomForest::combine,
+  model6 <- foreach(ntree=rep(floor(num.of.tree/cores), cores), .combine=randomForest::combine,
                     .multicombine=TRUE, .packages='randomForest') %dopar% {
                       randomForest(Load_Mw~.,data= na.omit(clean.df),
                                    subset=train,
@@ -626,6 +635,7 @@ importance(model6)
 }
 
 
+
 {
   new_data <- clean.df[-train,]
   plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],type='l')
@@ -638,6 +648,16 @@ importance(model6)
 
 #model6.cv <- rf.crossValidation(model6,clean.df[train,-which(colnames(clean.df)=='Load_Mw')],p=0.10, n=99, ntree=500)
 # test, finalement beaucoup trop long a rouler
+
+which(new_data$Month == 10 & new_data$Year == 2013) %>% 
+  {plot(new_data[.,'Load_Mw'],type='l')
+  lines(pred.rf[.],col='red')}
+
+
+plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],type='l')
+lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2013)],col='red')
+
+
 
 
 mauvais_res.df <- new_data[which(abs(res) > quantile(abs(res))[4]),]
