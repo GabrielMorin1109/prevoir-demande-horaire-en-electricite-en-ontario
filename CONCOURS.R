@@ -329,11 +329,11 @@ clean.df$weekday <- wday(clean.df$Date.s)
 #clean.df$Day.of.the.week <- (clean.df$weekday>=17 & clean.df$Hour<=21)*1
 
 # Load_Pj de l'annee d'avant
-prev_year <- ad.df[which(ad.df$Secteur == 'Residentiel'),c('Year','Load_PJ')]
-colnames(prev_year) <- c('Year','Prev_Year_Load_Pj')
-clean.df <- left_join(clean.df,prev_year,by='Year')
+#prev_year <- ad.df[which(ad.df$Secteur == 'Residentiel'),c('Year','Load_PJ')]
+#colnames(prev_year) <- c('Year','Prev_Year_Load_Pj')
+#clean.df <- left_join(clean.df,prev_year,by='Year')
 
-ad.df
+#ad.df
 clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Analyse des variables explicatives ----
@@ -616,6 +616,7 @@ new_data <- clean.df[-train,]
 plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],type='l')
 lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2013)],col='red')
 
+step(model6,trace=F)
 
 mauvais_res.df <- new_data[which(abs(res) > quantile(abs(res))[4]),]
 table(mauvais_res.df$Hour)
@@ -625,8 +626,12 @@ table(mauvais_res.df$Hour,mauvais_res.df$Month)
 table(mauvais_res.df$Day)
 table(mauvais_res.df$weekday)
 table(mauvais_res.df$holiday)
+View(mauvais_res.df)
 
+mauvais_res.df$res <- res[which(abs(res) > quantile(abs(res))[4])]
 
+clean.df[which(clean.df$Year==2012 & clean.df$Month == 10 & clean.df$Day == 24),]
+new_data[which(new_data$Year==2012 & new_data$Month == 10 & new_data$Day == 24),]
 
 test <- with(clean.df,aggregate(Load_Mw,by=list(weekday,Month),mean))
 test2 <- with(clean.df,aggregate(Load_Mw,by=list(weekday,Month),quantile))
