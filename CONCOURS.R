@@ -14,13 +14,8 @@
                 'bestglm',
                 'chron',
                 'hutilscpp', #cumsum_reset
-<<<<<<< HEAD
-                'RQuantLib',
-=======
-                # 'RQuantLib',
->>>>>>> 69c9db6d1aa5f4db7d8fd87e11fe6eb366fc73b0
-                'rfUtilities', #Pour la cross validation de rf
-                'hutilscpp'#, #cumsum_reset
+                'rfUtilities' #Pour la cross validation de rf
+
                 )
 
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -408,18 +403,14 @@ clean.df <- clean.df[-which(as.POSIXct(date(clean.df$Date.s)) %in% c(as.POSIXct(
 # Ajout du prix -- NE MARCHE PAS
 { 
   clean.df$ID_year_month <- paste(clean.df$Year,clean.df$Month,sep='-')
-  price.df$Id_year_month <- paste(as.numeric(price.df$Year),as.numeric(price.df$Month),sep='-')
-  #price.df <- price.df[,-which(colnames(price.df) %in% c('Month','Year'))]
-  clean.df <- left_join(clean.df,price.df,by='Id_year_month',suffix=c('','.y'))
+  price.df$ID_year_month <- paste(as.numeric(price.df$Year),as.numeric(price.df$Month),sep='-')
+  price.df <- price.df[,-which(colnames(price.df) %in% c('Month','Year'))]
+  clean.df <- left_join(clean.df,price.df,by='ID_year_month',suffix=c('','.y'))
+  clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_year_month')]
 }
 
-merge(clean.df,price.df)
-identical(clean.df$ID_year_month[1],price.df$ID_year_month[1])
-rlang::last_error()
-rlang::last_trace()
-
 # On enleve Date.s pcq cest un identifiant unique sur chaque ligne
-rownames(clean.df) <- clean.df$Date.s
+rownames(clean.df) <- clean.df$Date.s # ne marche pas sur mon ordi (Mathilde)
 clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
 clean.df <- clean.df[,-which(colnames(clean.df)=='irradiance_surface')]
 clean.df <- clean.df[,-which(colnames(clean.df)=='densite_air')]
