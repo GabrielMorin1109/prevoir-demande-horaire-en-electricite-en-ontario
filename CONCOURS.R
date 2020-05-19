@@ -724,8 +724,7 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
                                    subset=train,
                                    importance=T,
                                    ntree=ntree,
-                                   mtry=12)#,
-                                   # nodesize = 5)
+                                   mtry=12)
                     }
   
   stopCluster(cl)
