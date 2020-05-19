@@ -151,17 +151,18 @@ hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %i
     )
   ad.p.df <- prop.conso.ls %>% reduce(rbind)
 }
-{
-  hour.ls <- hour.I.df %>% split(year(hour.I.df$Date.s))
-  hour.df <- lapply(names(hour.ls), function(my.year){
-    tmp <- hour.ls[[my.year]]
-    tmp$Load_Mw <- 
-      tmp$Load_Mw * ad.p.df[ad.p.df$Secteur == "Residentiel",] %>% 
-      {.[.$Year == as.numeric(my.year),!colnames(.) %in% c("Year", "Secteur")]} %>%  #/ nrow(hour.ls[[my.year]])}
-      {.[,"proportion.conso"]}
-    tmp
-  }) %>% reduce(bind_rows)
-}
+hour.df <- hour.I.df
+# {
+#   hour.ls <- hour.I.df %>% split(year(hour.I.df$Date.s))
+#   hour.df <- lapply(names(hour.ls), function(my.year){
+#     tmp <- hour.ls[[my.year]]
+#     tmp$Load_Mw <- 
+#       tmp$Load_Mw * ad.p.df[ad.p.df$Secteur == "Residentiel",] %>% 
+#       {.[.$Year == as.numeric(my.year),!colnames(.) %in% c("Year", "Secteur")]} %>%  #/ nrow(hour.ls[[my.year]])}
+#       {.[,"proportion.conso"]}
+#     tmp
+#   }) %>% reduce(bind_rows)
+# }
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # On va utiliser 70% des donnees pour le training : ----
 train <- 1:(ceiling(0.7*nrow(hour.df)))
