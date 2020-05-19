@@ -140,28 +140,16 @@ hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %i
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Proportion de la consommation d'electricite par le Residentiel 
 {
-  ad.ls <- split(ad.df, ad.df$Year)
-  sum.year.conso <- purrr::map(ad.ls, ~.x$Load_PJ %>% sum)
-  prop.conso.ls <- 
-    purrr::map2(ad.ls, sum.year.conso,
-                ~sapply(1:nrow(.x),function(i){
-                  .x$Load_PJ[i]/.y
-                }) %>% 
-                  {cbind(.x, proportion.conso = .)}
-    )
-  ad.p.df <- prop.conso.ls %>% reduce(rbind)
+  ad.dt <- data.table(ad.df)
+  ad.dt[,prop:=Load_PJ/sum(Load_PJ), by=Year]
+  ad.p.dt <- ad.dt[which(Secteur == "Residentiel"),]
 }
-hour.df <- hour.I.df
+
 {
-  hour.ls <- hour.I.df %>% split(year(hour.I.df$Date.s))
-  hour.df <- lapply(names(hour.ls), function(my.year){
-    tmp <- hour.ls[[my.year]]
-    tmp$Load_Mw <-
-      tmp$Load_Mw * ad.p.df[ad.p.df$Secteur == "Residentiel",] %>%
-      {.[.$Year == as.numeric(my.year),!colnames(.) %in% c("Year", "Secteur")]} %>%  #/ nrow(hour.ls[[my.year]])}
-      {.[,"proportion.conso"]}
-    tmp
-  }) %>% reduce(bind_rows)
+  hour.I.dt <- as.data.table(hour.I.df)
+  hour.I.dt <- hour.I.dt[ad.p.dt[,.(Year,prop)],on='Year']
+  hour.I.dt[,":="(Load_Mw=(Load_Mw*prop),prop=NULL) ] %>% as.data.frame()
+  # hour.df <- hour.I.dt[,!"prop"] 
   
   { 
     salut <- ad.df[which(ad.df$Secteur == 'Residentiel'),c('Year','Load_PJ')]
@@ -743,6 +731,7 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
   stopCluster(cl)
 }
 importance(model6)
+varImpPlot(model6)
 
 splines::bs
 
