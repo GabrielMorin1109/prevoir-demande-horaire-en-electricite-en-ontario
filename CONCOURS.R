@@ -76,6 +76,7 @@ str(hd.df)
   price.df[,3:ncol(price.df)] <-  # correction des variables numeriques avec des "," en var num avec des "."
     sapply(price.df[,3:ncol(price.df)], function(my.df){as.numeric(gsub(",", ".", my.df))})
 }
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Arrangement des doublons 
 
@@ -152,17 +153,40 @@ hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %i
   ad.p.df <- prop.conso.ls %>% reduce(rbind)
 }
 hour.df <- hour.I.df
-# {
-#   hour.ls <- hour.I.df %>% split(year(hour.I.df$Date.s))
-#   hour.df <- lapply(names(hour.ls), function(my.year){
-#     tmp <- hour.ls[[my.year]]
-#     tmp$Load_Mw <- 
-#       tmp$Load_Mw * ad.p.df[ad.p.df$Secteur == "Residentiel",] %>% 
-#       {.[.$Year == as.numeric(my.year),!colnames(.) %in% c("Year", "Secteur")]} %>%  #/ nrow(hour.ls[[my.year]])}
-#       {.[,"proportion.conso"]}
-#     tmp
-#   }) %>% reduce(bind_rows)
-# }
+{
+  hour.ls <- hour.I.df %>% split(year(hour.I.df$Date.s))
+  hour.df <- lapply(names(hour.ls), function(my.year){
+    tmp <- hour.ls[[my.year]]
+    tmp$Load_Mw <-
+      tmp$Load_Mw * ad.p.df[ad.p.df$Secteur == "Residentiel",] %>%
+      {.[.$Year == as.numeric(my.year),!colnames(.) %in% c("Year", "Secteur")]} %>%  #/ nrow(hour.ls[[my.year]])}
+      {.[,"proportion.conso"]}
+    tmp
+  }) %>% reduce(bind_rows)
+  
+  { 
+    salut <- ad.df[which(ad.df$Secteur == 'Residentiel'),c('Year','Load_PJ')]
+    salut.prop <- (salut/sum(salut$Load_PJ))$Load_PJ
+    
+    salut.2 <- with(hour.df,aggregate(Load_Mw,by=list(Year),sum))
+    salut.2.prop <- (salut.2/sum(salut.2$x))$x
+    (correction <- salut.prop/salut.2.prop)
+    correction <- data.frame(Year= 2003:2016, correction = correction)
+  }
+  
+  
+  hour.df <- left_join(hour.df,correction,by='Year')
+  hour.df$Load_Mw <- hour.df$Load_Mw*hour.df$correction
+  hour.df <- hour.df[,!colnames(hour.df) %in% "correction"]
+  # { 
+  #   salut <- ad.df[which(ad.df$Secteur == 'Residentiel'),c('Year','Load_PJ')]
+  #   salut.prop <- (salut/sum(salut$Load_PJ))$Load_PJ
+  #   
+  #   salut.2 <- with(clean.df,aggregate(Load_Mw,by=list(Year),sum))
+  #   salut.2.prop <- (salut.2/sum(salut.2$x))$x
+  #   correction <- salut.prop/salut.2.prop
+  # }
+}
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # On va utiliser 70% des donnees pour le training : ----
 train <- 1:(ceiling(0.7*nrow(hour.df)))
@@ -421,13 +445,16 @@ clean.df <- clean.df[-which(as.POSIXct(date(clean.df$Date.s)) %in% c(as.POSIXct(
 # Ajout du prix -- NE MARCHE PAS
 #{ 
   #clean.df$ID_year_month <- paste(clean.df$Year,clean.df$Month,sep='-')
-  #price.df$ID_year_month <- paste(as.numeric(price.df$Year),as.numeric(price.df$Month),sep='-')
+  price.df$ID_year_month <- paste(as.numeric(price.df$Year),as.numeric(price.df$Month),sep='-')
+  plot(y=price.df$price_over_5000_Kw,x=price.df$ID_year_month,type='l')
   #price.df <- price.df[,-which(colnames(price.df) %in% c('Month','Year'))]
   #clean.df <- left_join(clean.df,price.df,by='ID_year_month',suffix=c('','.y'))
   #clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_year_month')]
 #}
-
-
+  plot(with(price.df,aggregate(price_under_5000_kw ,by=list(Year),mean)),type='l')
+  plot(with(clean.df,aggregate(Load_Mw,by=list(Year),sum)),type='l')
+  plot(ad.df[which(ad.df$Secteur == 'Residentiel'),c('Year','Load_PJ')]*277777.77778,type='l')
+  
 
 # On enleve Date.s pcq cest un identifiant unique sur chaque ligne
 rownames(clean.df) <- clean.df$Date.s # ne marche pas sur mon ordi (Mathilde)
@@ -740,7 +767,7 @@ ncol(x)/3
   lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2013)],col='red')  
 }
 
-
+new_data[which(abs(res) > quantile(abs(res))[4]),]
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Tests et validations
 
@@ -834,6 +861,19 @@ res <- pred.rf - clean.df[-train,'Load_Mw']
 MSE.rf <- mean(res^2)
 sqrt(MSE.rf) 
 
+
+
+# Test d'un glm
+test <- glm(Load_Mw~.,data=clean.df,subset = train,family='gaussian')
+summary(test)
+step <- step(test)
+summary(step)
+
+pred.test <- predict(test,newdata=clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')])
+res.test <- pred.test - clean.df[-train,'Load_Mw']
+mean(res.test^2)
+
+plot(step,which=1)
 
 {
   # Modele 7 : random forest avec database en format ts 
