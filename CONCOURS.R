@@ -219,6 +219,7 @@ corrgram(hour.ts)
   abline(lm.fit, col = "red")
   legend('topright', legend = paste0(c("pente : ", as.character(lm.fit$coefficients["Date.s"]))), bty = 'n')
   lm.fit %>% summary()}
+# aggregate(hour.df, by = list(hour.df$Year), mean) %>% lm(Load_Mw~Year, data=.) %>% summary()
 
 
 # Donc, decroissance relativement faible ici, mais significative.
@@ -447,8 +448,10 @@ colnames(clean.df)
 plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[1])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[1])
 # *****
 
-# Year
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[3])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[3])
+# Year ----
+
+plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[3])],
+     y=clean.df$Load_Mw,xlab=colnames(clean.df)[3])
 # ****
 
 # Month
@@ -685,7 +688,6 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Modele 6 : Random Forest mais avec une base de donnee clean ----
-
 {
   {
     if(detectCores()==8){
@@ -702,11 +704,12 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
   
   model6 <- foreach(ntree=rep(floor(num.of.tree/cores), cores), .combine=randomForest::combine,
                     .multicombine=TRUE, .packages='randomForest') %dopar% {
-                      randomForest(Load_Mw~.,data= na.omit(clean.df),
+                      randomForest(Load_Mw~.,data= na.omit(clean.df[,!colnames(clean.df)%in%"Year"]),
                                    subset=train,
                                    importance=T,
                                    ntree=ntree,
-                                   mtry=12)
+                                   mtry=12)#,
+                                   # nodesize = 5)
                     }
   
   stopCluster(cl)
@@ -718,7 +721,7 @@ importance(model6)
   res <- pred.rf - clean.df[-train,'Load_Mw']
   MSE.rf <- mean(res^2)
   sqrt(MSE.rf) 
-  R2 <- 1 - (sum((res)^2)/sum((clean.df[-train,'Load_Mw']-mean(clean.df[-train,'Load_Mw']))^2))
+  (R2 <- 1 - (sum((res)^2)/sum((clean.df[-train,'Load_Mw']-mean(clean.df[-train,'Load_Mw']))^2)))
 }
 
 
