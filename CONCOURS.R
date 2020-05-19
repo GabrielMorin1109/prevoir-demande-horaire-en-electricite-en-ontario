@@ -14,8 +14,8 @@
                 'bestglm',
                 'chron',
                 'hutilscpp', #cumsum_reset
-                'rfUtilities' #Pour la cross validation de rf
-
+                'rfUtilities', #Pour la cross validation de rf
+                'ipred' #bagging
                 )
 
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -401,13 +401,13 @@ clean.df <- clean.df[-which(as.POSIXct(date(clean.df$Date.s)) %in% c(as.POSIXct(
 #lines(clean.df$temperature,predict(reg,clean.df),col='red')
 
 # Ajout du prix -- NE MARCHE PAS
-{ 
-  clean.df$ID_year_month <- paste(clean.df$Year,clean.df$Month,sep='-')
-  price.df$ID_year_month <- paste(as.numeric(price.df$Year),as.numeric(price.df$Month),sep='-')
-  price.df <- price.df[,-which(colnames(price.df) %in% c('Month','Year'))]
-  clean.df <- left_join(clean.df,price.df,by='ID_year_month',suffix=c('','.y'))
-  clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_year_month')]
-}
+#{ 
+  #clean.df$ID_year_month <- paste(clean.df$Year,clean.df$Month,sep='-')
+  #price.df$ID_year_month <- paste(as.numeric(price.df$Year),as.numeric(price.df$Month),sep='-')
+  #price.df <- price.df[,-which(colnames(price.df) %in% c('Month','Year'))]
+  #clean.df <- left_join(clean.df,price.df,by='ID_year_month',suffix=c('','.y'))
+  #clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_year_month')]
+#}
 
 # On enleve Date.s pcq cest un identifiant unique sur chaque ligne
 rownames(clean.df) <- clean.df$Date.s # ne marche pas sur mon ordi (Mathilde)
@@ -687,7 +687,8 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
                       randomForest(Load_Mw~.,data= na.omit(clean.df),
                                    subset=train,
                                    importance=T,
-                                   ntree=ntree)
+                                   ntree=ntree,
+                                   mtry=12)
                     }
   
   stopCluster(cl)
@@ -700,9 +701,15 @@ importance(model6)
   res <- pred.rf - clean.df[-train,'Load_Mw']
   MSE.rf <- mean(res^2)
   sqrt(MSE.rf) 
+  R2 <- 1 - (sum((res)^2)/sum((clean.df[-train,'Load_Mw']-mean(clean.df[-train,'Load_Mw']))^2))
 }
 
-R2 <- 1 - (sum((res)^2)/sum((clean.df[-train,'Load_Mw']-mean(clean.df[-train,'Load_Mw']))^2))
+x<- clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')]
+y<- clean.df[-train,which(colnames(clean.df) %in% 'Load_Mw')]
+
+tune <- tuneRF(x,y, ntreeTry=50, stepFactor=2, improve=0.05,trace=F, plot=F)
+tune
+ncol(x)/3
 
 {
   new_data <- clean.df[-train,]
