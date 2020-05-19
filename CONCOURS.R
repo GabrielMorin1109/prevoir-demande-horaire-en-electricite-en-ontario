@@ -702,7 +702,7 @@ importance(model6)
   sqrt(MSE.rf) 
 }
 
-
+R2 <- 1 - (sum((res)^2)/sum((clean.df[-train,'Load_Mw']-mean(clean.df[-train,'Load_Mw']))^2))
 
 {
   new_data <- clean.df[-train,]
