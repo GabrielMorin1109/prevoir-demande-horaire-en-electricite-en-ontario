@@ -15,7 +15,6 @@
                 'chron',
                 'hutilscpp', #cumsum_reset
                 'rfUtilities' #Pour la cross validation de rf
-
                 )
 
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -442,18 +441,17 @@ clean.df <- clean.df[-which(as.POSIXct(date(clean.df$Date.s)) %in% c(as.POSIXct(
 #plot(x=clean.df$temperature,y=clean.df$Load_Mw)
 #lines(clean.df$temperature,predict(reg,clean.df),col='red')
 
-# Ajout du prix -- NE MARCHE PAS
-#{ 
-  #clean.df$ID_year_month <- paste(clean.df$Year,clean.df$Month,sep='-')
+# Ajout du prix
+{ 
+  clean.df$ID_year_month <- paste(clean.df$Year,clean.df$Month,sep='-')
   price.df$ID_year_month <- paste(as.numeric(price.df$Year),as.numeric(price.df$Month),sep='-')
-  plot(y=price.df$price_over_5000_Kw,x=price.df$ID_year_month,type='l')
-  #price.df <- price.df[,-which(colnames(price.df) %in% c('Month','Year'))]
-  #clean.df <- left_join(clean.df,price.df,by='ID_year_month',suffix=c('','.y'))
-  #clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_year_month')]
-#}
-  plot(with(price.df,aggregate(price_under_5000_kw ,by=list(Year),mean)),type='l')
-  plot(with(clean.df,aggregate(Load_Mw,by=list(Year),sum)),type='l')
-  plot(ad.df[which(ad.df$Secteur == 'Residentiel'),c('Year','Load_PJ')]*277777.77778,type='l')
+ # plot(y=price.df$price_over_5000_Kw,x=price.df$ID_year_month,type='l')
+  price.df <- price.df[,-which(colnames(price.df) %in% c('Month','Year'))]
+  clean.df <- left_join(clean.df,price.df,by='ID_year_month',suffix=c('','.y'))
+  clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_year_month')]
+}
+
+
   
 
 # On enleve Date.s pcq cest un identifiant unique sur chaque ligne
@@ -461,6 +459,8 @@ rownames(clean.df) <- clean.df$Date.s # ne marche pas sur mon ordi (Mathilde)
 clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
 clean.df <- clean.df[,-which(colnames(clean.df)=='irradiance_surface')]
 clean.df <- clean.df[,-which(colnames(clean.df)=='densite_air')]
+clean.df$temperature_2 <- clean.df$temperature^2
+
 
 plot(clean.df$Load_Mw[which(clean.df$Month == 10 & clean.df$Year == 2003)],type='l')
 lines(clean.df$Load_Mw[which(clean.df$Month == 10 & clean.df$Year == 2004)])
@@ -744,6 +744,9 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 }
 importance(model6)
 
+splines::bs
+
+
 {
   pred.rf <- predict(model6,newdata=clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')])
   res <- pred.rf - clean.df[-train,'Load_Mw']
@@ -763,8 +766,8 @@ ncol(x)/3
 
 {
   new_data <- clean.df[-train,]
-  plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],type='l')
-  lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2013)],col='red')  
+  plot(new_data[which(new_data$Month == 10 & new_data$Year == 2014),'Load_Mw'],type='l')
+  lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2014)],col='red')  
 }
 
 new_data[which(abs(res) > quantile(abs(res))[4]),]
