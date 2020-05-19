@@ -15,7 +15,6 @@
                 'chron',
                 'hutilscpp', #cumsum_reset
                 'rfUtilities' #Pour la cross validation de rf
-
                 )
 
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
