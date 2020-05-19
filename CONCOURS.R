@@ -415,7 +415,7 @@ clean.df <- clean.df[-which(as.POSIXct(date(clean.df$Date.s)) %in% c(as.POSIXct(
 #plot(x=clean.df$temperature,y=clean.df$Load_Mw)
 #lines(clean.df$temperature,predict(reg,clean.df),col='red')
 
-# Ajout du prix -- NE MARCHE PAS
+# Ajout du prix -- NE MARCHE PAS ----
 { 
   clean.df$ID_year_month <- paste(clean.df$Year,clean.df$Month,sep='-')
   price.df$ID_year_month <- paste(as.numeric(price.df$Year),as.numeric(price.df$Month),sep='-')
@@ -709,7 +709,6 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 }
 importance(model6)
 
-
 {
   pred.rf <- predict(model6,newdata=clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')])
   res <- pred.rf - clean.df[-train,'Load_Mw']
@@ -717,7 +716,7 @@ importance(model6)
   sqrt(MSE.rf) 
 }
 
-R2 <- 1 - (sum((res)^2)/sum((clean.df[-train,'Load_Mw']-mean(clean.df[-train,'Load_Mw']))^2))
+(R2 <- 1 - (sum((res)^2)/sum((clean.df[-train,'Load_Mw']-mean(clean.df[-train,'Load_Mw']))^2)))
 
 {
   new_data <- clean.df[-train,]
