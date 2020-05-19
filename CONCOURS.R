@@ -14,8 +14,8 @@
                 'bestglm',
                 'chron',
                 'hutilscpp', #cumsum_reset
-                'rfUtilities', #Pour la cross validation de rf
-                'ipred' #bagging
+                'rfUtilities' #Pour la cross validation de rf
+
                 )
 
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -328,13 +328,29 @@ clean.df$weekday <- wday(clean.df$Date.s)
   clean.df$holiday[which(as.POSIXct(date(clean.df$Date.s)) %in% holidays)] <- 1
 }
 
-# Octobre ----
-# clean.df$octobre <- 
-
 
 library(ggplot2)
 temp <- clean.df[clean.df$Month == 10,]
-ggplot(temp, aes(x=Month, y=Date.s, group=Year)) + geom_line()
+ggplot(temp, aes(x=Year, y=Load_Mw, group=Year)) + geom_line()
+# ggplot(clean.df, aes(x=temperature, y=Load_Mw, group=Year)) + geom_line()
+# aggregate(clean.df, 
+temp.min <- with(clean.df,aggregate(temperature,by=list(as.Date(Date.s)),min))
+temp.max <- with(clean.df,aggregate(temperature,by=list(as.Date(Date.s)),max))
+
+# my.Load_Mw.mean.day <- with(clean.df,aggregate(Load_Mw, by=list(as.Date(Day)),max))
+
+temp <- cbind(temp.min = temp.min$x,
+      temp.max = temp.max$x) %>% as.data.frame()
+
+{
+  plot(temp.min$Group.1, 
+       temp.min$x, 
+        ylim = c(-30,30),
+        type="l"
+        )
+  lines(temp.min$Group.1, temp.max$x, col = "red")
+  lines(temp.min$Group.1, with(clean.df,aggregate(temperature,by=list(as.Date(Date.s)),mean))$x, col = "blue")
+}
 
                               # for(i in seq_along(clean.octobre.ls)){
                               #   if(i==1) {
@@ -408,6 +424,8 @@ clean.df <- clean.df[-which(as.POSIXct(date(clean.df$Date.s)) %in% c(as.POSIXct(
   #clean.df <- left_join(clean.df,price.df,by='ID_year_month',suffix=c('','.y'))
   #clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_year_month')]
 #}
+
+
 
 # On enleve Date.s pcq cest un identifiant unique sur chaque ligne
 rownames(clean.df) <- clean.df$Date.s # ne marche pas sur mon ordi (Mathilde)
@@ -695,7 +713,6 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 }
 importance(model6)
 
-
 {
   pred.rf <- predict(model6,newdata=clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')])
   res <- pred.rf - clean.df[-train,'Load_Mw']
@@ -704,12 +721,14 @@ importance(model6)
   R2 <- 1 - (sum((res)^2)/sum((clean.df[-train,'Load_Mw']-mean(clean.df[-train,'Load_Mw']))^2))
 }
 
+
 x<- clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')]
 y<- clean.df[-train,which(colnames(clean.df) %in% 'Load_Mw')]
 
 tune <- tuneRF(x,y, ntreeTry=50, stepFactor=2, improve=0.05,trace=F, plot=F)
 tune
 ncol(x)/3
+
 
 {
   new_data <- clean.df[-train,]
@@ -761,9 +780,8 @@ for(i in 1:4) {
 # data.plot %>% 
   # {plot(pred.rf[.],col='red', type = "l")}
 
-30957: 31125
-plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],type='l')
-lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2013)],col='red')
+# plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],type='l')
+# lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2013)],col='red')
 
 
 quantile(clean.df$diff_mean_temp_month)
