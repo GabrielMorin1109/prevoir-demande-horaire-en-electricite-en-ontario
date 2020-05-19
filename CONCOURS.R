@@ -327,9 +327,6 @@ clean.df$weekday <- wday(clean.df$Date.s)
   clean.df$holiday[which(as.POSIXct(date(clean.df$Date.s)) %in% holidays)] <- 1
 }
 
-# Octobre ----
-# clean.df$octobre <- 
-
 
 library(ggplot2)
 temp <- clean.df[clean.df$Month == 10,]
