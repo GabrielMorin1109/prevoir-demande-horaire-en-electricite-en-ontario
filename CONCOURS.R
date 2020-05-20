@@ -14,7 +14,8 @@
                 'bestglm',
                 'chron',
                 'hutilscpp', #cumsum_reset
-                'rfUtilities' #Pour la cross validation de rf
+                'rfUtilities', #Pour la cross validation de rf
+                'caret' # for validation
                 )
 
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -439,6 +440,11 @@ clean.df <- clean.df[-which(as.POSIXct(date(clean.df$Date.s)) %in% c(as.POSIXct(
   clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_year_month')]
 }
 
+# Dummy octobre
+{
+  clean.df$Octobre <- rep(0,nrow(clean.df))
+  clean.df$Octobre[which(clean.df$Month == 10)] <- 1  
+}
 
   
 
@@ -480,6 +486,9 @@ plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[5])],y=clean.df$
 
 # temperature
 plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[6])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[6])
+reg <- lm(Load_Mw ~ poly(temperature,6),clean.df,subset = train)
+summary(reg)
+
 # *****
 
 # irradiance_surface
@@ -866,6 +875,14 @@ res.test <- pred.test - clean.df[-train,'Load_Mw']
 mean(res.test^2)
 
 plot(step,which=1)
+
+
+# VALIDATION
+trControl <- trainControl(method = "cv",
+                          number = 10,
+                          search = "grid")
+
+train(Load_Mw~L., clean.df[train,], method = "rf", metric= "Accuracy", trControl = trainControl(), tuneGrid = NULL)
 
 {
   # Modele 7 : random forest avec database en format ts 
