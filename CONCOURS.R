@@ -407,22 +407,22 @@ clean.df <- clean.df[-which(as.POSIXct(date(clean.df$Date.s)) %in% c(as.POSIXct(
 #plot(x=clean.df$temperature,y=clean.df$Load_Mw,xlim=c(30,40)) 
 
 # On va creer notre variable groups
-{
-  clean.df$group_of_temperature <- rep(NA,nrow(clean.df))
-  clean.df$group_of_temperature[which(clean.df$temperature>=(-30)&clean.df$temperature<(-10))] <- '[-30,-10)'
-  clean.df$group_of_temperature[which(clean.df$temperature>=(-10)&clean.df$temperature<0)] <- '[-10,0)'
-  clean.df$group_of_temperature[which(clean.df$temperature>=(0)&clean.df$temperature<(10))] <- '[0,10)'
-  clean.df$group_of_temperature[which(clean.df$temperature>=10&clean.df$temperature<15)] <- '[10,15)'
-  clean.df$group_of_temperature[which(clean.df$temperature>=(15)&clean.df$temperature<(20))] <- '[15,20)'
-  clean.df$group_of_temperature[which(clean.df$temperature>=(20)&clean.df$temperature<(25))] <- '[20,25)'
-  clean.df$group_of_temperature[which(clean.df$temperature>=(25)&clean.df$temperature<(30))] <- '[25,30)'
-  clean.df$group_of_temperature[which(clean.df$temperature>=(30)&clean.df$temperature<(40))] <- '[30,40)'
+#{
+  #clean.df$group_of_temperature <- rep(NA,nrow(clean.df))
+  #clean.df$group_of_temperature[which(clean.df$temperature>=(-30)&clean.df$temperature<(-10))] <- '[-30,-10)'
+  #clean.df$group_of_temperature[which(clean.df$temperature>=(-10)&clean.df$temperature<0)] <- '[-10,0)'
+  #clean.df$group_of_temperature[which(clean.df$temperature>=(0)&clean.df$temperature<(10))] <- '[0,10)'
+  #clean.df$group_of_temperature[which(clean.df$temperature>=10&clean.df$temperature<15)] <- '[10,15)'
+  #clean.df$group_of_temperature[which(clean.df$temperature>=(15)&clean.df$temperature<(20))] <- '[15,20)'
+  #clean.df$group_of_temperature[which(clean.df$temperature>=(20)&clean.df$temperature<(25))] <- '[20,25)'
+  #clean.df$group_of_temperature[which(clean.df$temperature>=(25)&clean.df$temperature<(30))] <- '[25,30)'
+  #clean.df$group_of_temperature[which(clean.df$temperature>=(30)&clean.df$temperature<(40))] <- '[30,40)'
   
-  mean_Load_Mw_by_temp <- with(clean.df,aggregate(Load_Mw,by=list(group_of_temperature),mean))
-  colnames(mean_Load_Mw_by_temp) <- c('group_of_temperature','mean_Load_Mw_by_temp')
-  clean.df <- left_join(clean.df,mean_Load_Mw_by_temp,by='group_of_temperature',suffix=c('','.y'))  
-  clean.df <- clean.df[,-which(colnames(clean.df)=='group_of_temperature')]
-}
+  #mean_Load_Mw_by_temp <- with(clean.df,aggregate(Load_Mw,by=list(group_of_temperature),mean))
+  #colnames(mean_Load_Mw_by_temp) <- c('group_of_temperature','mean_Load_Mw_by_temp')
+  #clean.df <- left_join(clean.df,mean_Load_Mw_by_temp,by='group_of_temperature',suffix=c('','.y'))  
+  #clean.df <- clean.df[,-which(colnames(clean.df)=='group_of_temperature')]
+#}
 
 
 #reg <- lm(Load_Mw~bs(temperature),clean.df,subset=train)
@@ -712,7 +712,8 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Modele 6 : Random Forest mais avec une base de donnee clean ----
+# Modele 6 : Random Forest mais sans Year----
+clean.df <- clean.df[,-which(colnames(clean.df) == 'Year')]
 {
   {
     if(detectCores()==8){
@@ -742,7 +743,6 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 importance(model6)
 varImpPlot(model6)
 
-splines::bs
 
 
 {
@@ -752,6 +752,7 @@ splines::bs
   sqrt(MSE.rf) 
   (R2 <- 1 - (sum((res)^2)/sum((clean.df[-train,'Load_Mw']-mean(clean.df[-train,'Load_Mw']))^2)))
 }
+
 
 
 x<- clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')]
@@ -765,7 +766,7 @@ ncol(x)/3
 {
   new_data <- clean.df[-train,]
   plot(new_data[which(new_data$Month == 10 & new_data$Year == 2014),'Load_Mw'],type='l')
-  lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2014)],col='red')  
+  lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2014)]*1.05,col='red')  
 }
 
 new_data[which(abs(res) > quantile(abs(res))[4]),]
@@ -862,7 +863,8 @@ res <- pred.rf - clean.df[-train,'Load_Mw']
 MSE.rf <- mean(res^2)
 sqrt(MSE.rf) 
 
-
+test <- clean.df[which(clean.df$Year == 2016),which(colnames(clean.df) %in% c('Year','Day','Month','Hour','Load_Mw'))]
+plot(test$Load_Mw,type='l')
 
 # Test d'un glm
 test <- glm(Load_Mw~.,data=clean.df,subset = train,family='gaussian')
@@ -882,7 +884,20 @@ trControl <- trainControl(method = "cv",
                           number = 10,
                           search = "grid")
 
-train(Load_Mw~L., clean.df[train,], method = "rf", metric= "Accuracy", trControl = trainControl(), tuneGrid = NULL)
+#train(Load_Mw~., clean.df[train,], method = "rf", metric= "RMSE", trControl = trainControl(), tuneGrid = NULL) # prend 40 ans
+
+# GRAPHIQUES
+fig <- plot_ly(alpha = 0.6)
+fig <- fig %>% add_histogram(y=~clean.df[-train,'Load_Mw'])
+fig <- fig %>% add_histogram(y=~pred.rf)
+fig <- fig %>% layout(barmode = "overlay")
+
+cbind(clean.df[-train,],pred.rf)
+
+fig <- plot_ly(data.frame(Load_Mw=pred.rf),x=~, y = ~Load_Mw, type = 'scatter', mode = 'lines',
+               line = list(color = 'transparent'),
+               showlegend = FALSE, name = 'High 2014') 
+
 
 {
   # Modele 7 : random forest avec database en format ts 
