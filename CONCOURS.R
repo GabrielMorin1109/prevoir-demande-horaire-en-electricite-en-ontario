@@ -344,28 +344,28 @@ clean.df$weekday <- wday(clean.df$Date.s)
 }
 
 
-library(ggplot2)
-temp <- clean.df[clean.df$Month == 10,]
-ggplot(temp, aes(x=Year, y=Load_Mw, group=Year)) + geom_line()
+#library(ggplot2)
+#temp <- clean.df[clean.df$Month == 10,]
+#ggplot(temp, aes(x=Year, y=Load_Mw, group=Year)) + geom_line()
 # ggplot(clean.df, aes(x=temperature, y=Load_Mw, group=Year)) + geom_line()
 # aggregate(clean.df, 
-temp.min <- with(clean.df,aggregate(temperature,by=list(as.Date(Date.s)),min))
-temp.max <- with(clean.df,aggregate(temperature,by=list(as.Date(Date.s)),max))
+#temp.min <- with(clean.df,aggregate(temperature,by=list(as.Date(Date.s)),min))
+#temp.max <- with(clean.df,aggregate(temperature,by=list(as.Date(Date.s)),max))
 
 # my.Load_Mw.mean.day <- with(clean.df,aggregate(Load_Mw, by=list(as.Date(Day)),max))
 
-temp <- cbind(temp.min = temp.min$x,
-      temp.max = temp.max$x) %>% as.data.frame()
+#temp <- cbind(temp.min = temp.min$x,
+ #     temp.max = temp.max$x) %>% as.data.frame()
 
-{
-  plot(temp.min$Group.1, 
-       temp.min$x, 
-        ylim = c(-30,30),
-        type="l"
-        )
-  lines(temp.min$Group.1, temp.max$x, col = "red")
-  lines(temp.min$Group.1, with(clean.df,aggregate(temperature,by=list(as.Date(Date.s)),mean))$x, col = "blue")
-}
+#{
+ # plot(temp.min$Group.1, 
+  #     temp.min$x, 
+   #     ylim = c(-30,30),
+    #    type="l"
+     #   )
+  #lines(temp.min$Group.1, temp.max$x, col = "red")
+  #lines(temp.min$Group.1, with(clean.df,aggregate(temperature,by=list(as.Date(Date.s)),mean))$x, col = "blue")
+#}
 
 # Octobre ----
 # clean.df$is.october <- (clean.df$Month == 10)*1
@@ -710,7 +710,13 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Modele 6 : Random Forest mais sans Year----
+
+# essayons d'enlever les variables ayant un petit %IncMSE
+
+clean.df.2 <- clean.df
 clean.df <- clean.df[,-which(colnames(clean.df) == 'Year')]
+clean.df <- clean.df[,-which(colnames(clean.df) == 'Weekend')]
+
 {
   {
     if(detectCores()==8){
@@ -742,6 +748,7 @@ varImpPlot(model6)
 importance(model6)
 
 
+
 getTree(model6, labelVar=T)
 summary(model6)
 varImpPlot(model6,main = "Variable importance plot of the RF")
@@ -753,8 +760,7 @@ varImpPlot(model6,main = "Variable importance plot of the RF")
 {
   pred.rf <- predict(model6,newdata=clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')])
   res <- pred.rf - clean.df[-train,'Load_Mw']
-  (MSE.rf <- mean(res^2))
-  sqrt(MSE.rf) 
+  (MSE.rf <- mean(abs(res)))
   (R2 <- 1 - (sum((res)^2)/sum((clean.df[-train,'Load_Mw']-mean(clean.df[-train,'Load_Mw']))^2)))
 }
 
@@ -770,9 +776,10 @@ ncol(x)/3
 
 {
   new_data <- clean.df[-train,]
-  plot(new_data[which(new_data$Month == 10 & new_data$Year == 2014),'Load_Mw'],type='l')
-  lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2014)]*1.05,col='red')  
+  plot(new_data[which(new_data$Month == 10 & new_data$Year == 2016),'Load_Mw'],type='l')
+  lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2014)],col='red')  
 }
+
 
 new_data[which(abs(res) > quantile(abs(res))[4]),]
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
