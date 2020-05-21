@@ -713,6 +713,10 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Modele 6 : Random Forest mais sans Year----
+
+# essayons d'enlever les variables ayant un petit %IncMSE
+
+
 clean.df <- clean.df[,-which(colnames(clean.df) == 'Year')]
 {
   {
@@ -743,7 +747,7 @@ clean.df <- clean.df[,-which(colnames(clean.df) == 'Year')]
 importance(model6)
 varImpPlot(model6)
 
-
+model6
 
 {
   pred.rf <- predict(model6,newdata=clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')])
@@ -765,9 +769,10 @@ ncol(x)/3
 
 {
   new_data <- clean.df[-train,]
-  plot(new_data[which(new_data$Month == 10 & new_data$Year == 2014),'Load_Mw'],type='l')
-  lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2014)]*1.05,col='red')  
+  plot(new_data[which(new_data$Month == 10 & new_data$Year == 2016),'Load_Mw'],type='l')
+  lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2014)],col='red')  
 }
+
 
 new_data[which(abs(res) > quantile(abs(res))[4]),]
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
