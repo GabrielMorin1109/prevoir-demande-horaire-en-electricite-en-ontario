@@ -429,12 +429,12 @@ clean.df <- clean.df[-which(as.POSIXct(date(clean.df$Date.s)) %in% c(as.POSIXct(
 
 # Ajout du prix
 { 
- #  clean.df$ID_year_month <- paste(clean.df$Year,clean.df$Month,sep='-')
- #  price.df$ID_year_month <- paste(as.numeric(price.df$Year),as.numeric(price.df$Month),sep='-')
- # # plot(y=price.df$price_over_5000_Kw,x=price.df$ID_year_month,type='l')
- #  price.df <- price.df[,-which(colnames(price.df) %in% c('Month','Year'))]
- #  clean.df <- left_join(clean.df,price.df,by='ID_year_month',suffix=c('','.y'))
- #  clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_year_month')]
+  clean.df$ID_year_month <- paste(clean.df$Year,clean.df$Month,sep='-')
+  price.df$ID_year_month <- paste(as.numeric(price.df$Year),as.numeric(price.df$Month),sep='-')
+ # plot(y=price.df$price_over_5000_Kw,x=price.df$ID_year_month,type='l')
+  price.df <- price.df[,-which(colnames(price.df) %in% c('Month','Year'))]
+  clean.df <- left_join(clean.df,price.df,by='ID_year_month',suffix=c('','.y'))
+  clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_year_month')]
 }
 
 # Dummy octobre
@@ -718,7 +718,7 @@ clean.df <- clean.df[,-which(colnames(clean.df) == 'Year')]
       num.of.tree <- 50
     } else {
       cores <- 10
-      num.of.tree <- 50
+      num.of.tree <- 150
         }
     cl <- makeCluster(cores)
     registerDoParallel(cores)
@@ -727,7 +727,7 @@ clean.df <- clean.df[,-which(colnames(clean.df) == 'Year')]
   
   model6 <- foreach(ntree=rep(floor(num.of.tree/cores), cores), .combine=randomForest::combine,
                     .multicombine=TRUE, .packages='randomForest') %dopar% {
-                      randomForest(Load_Mw~.,data= na.omit(clean.df[,!colnames(clean.df)%in%"Year"]), #******************ATTENTION*******************
+                      randomForest(Load_Mw~.,data= na.omit(clean.df),
                                    subset=train,
                                    importance=T,
                                    ntree=ntree,
@@ -736,10 +736,10 @@ clean.df <- clean.df[,-which(colnames(clean.df) == 'Year')]
   
   stopCluster(cl)
 }
-importance(model6)
-
 #Variable a enlever: holiday, threshold
 varImpPlot(model6)
+
+importance(model6)
 
 
 getTree(model6, labelVar=T)
