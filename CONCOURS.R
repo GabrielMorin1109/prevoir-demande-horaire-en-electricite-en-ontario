@@ -149,6 +149,7 @@ hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %i
   hour.I.dt <- as.data.table(hour.I.df)
   hour.I.dt <- hour.I.dt[ad.p.dt[,.(Year,prop)],on='Year']
   hour.I.dt[,":="(Load_Mw=(Load_Mw*prop),prop=NULL) ] %>% as.data.frame()
+  hour.df <- hour.I.dt
   # hour.df <- hour.I.dt[,!"prop"] 
   
   { 
@@ -365,13 +366,9 @@ temp <- cbind(temp.min = temp.min$x,
   lines(temp.min$Group.1, with(clean.df,aggregate(temperature,by=list(as.Date(Date.s)),mean))$x, col = "blue")
 }
 
-                              # for(i in seq_along(clean.octobre.ls)){
-                              #   if(i==1) {
-                              #     clean.octobre.ls[[i]] %>% {plot(.$Load_Mw, .$Date.s)}
-                              #   } else {
-                              #     clean.octobre.ls[[i]] %>% {plot(.$Load_Mw, .$Date.s, add=T)}
-                              #   }
-                              # }
+# Octobre ----
+# clean.df$is.october <- (clean.df$Month == 10)*1
+
 # heure souper 
 #clean.df$souper <- (clean.df$Hour>=17 & clean.df$Hour<=21)*1
 
@@ -431,12 +428,12 @@ clean.df <- clean.df[-which(as.POSIXct(date(clean.df$Date.s)) %in% c(as.POSIXct(
 
 # Ajout du prix
 { 
-  clean.df$ID_year_month <- paste(clean.df$Year,clean.df$Month,sep='-')
-  price.df$ID_year_month <- paste(as.numeric(price.df$Year),as.numeric(price.df$Month),sep='-')
- # plot(y=price.df$price_over_5000_Kw,x=price.df$ID_year_month,type='l')
-  price.df <- price.df[,-which(colnames(price.df) %in% c('Month','Year'))]
-  clean.df <- left_join(clean.df,price.df,by='ID_year_month',suffix=c('','.y'))
-  clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_year_month')]
+ #  clean.df$ID_year_month <- paste(clean.df$Year,clean.df$Month,sep='-')
+ #  price.df$ID_year_month <- paste(as.numeric(price.df$Year),as.numeric(price.df$Month),sep='-')
+ # # plot(y=price.df$price_over_5000_Kw,x=price.df$ID_year_month,type='l')
+ #  price.df <- price.df[,-which(colnames(price.df) %in% c('Month','Year'))]
+ #  clean.df <- left_join(clean.df,price.df,by='ID_year_month',suffix=c('','.y'))
+ #  clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_year_month')]
 }
 
 
@@ -447,7 +444,7 @@ rownames(clean.df) <- clean.df$Date.s # ne marche pas sur mon ordi (Mathilde)
 clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
 clean.df <- clean.df[,-which(colnames(clean.df)=='irradiance_surface')]
 clean.df <- clean.df[,-which(colnames(clean.df)=='densite_air')]
-clean.df$temperature_2 <- clean.df$temperature^2
+# clean.df$temperature_2 <- clean.df$temperature^2
 
 
 plot(clean.df$Load_Mw[which(clean.df$Month == 10 & clean.df$Year == 2003)],type='l')
@@ -710,8 +707,8 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
       cores <- 7
       num.of.tree <- 50
     } else {
-      cores <- 12
-      num.of.tree <- 500
+      cores <- 10
+      num.of.tree <- 50
         }
     cl <- makeCluster(cores)
     registerDoParallel(cores)
@@ -720,7 +717,7 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
   
   model6 <- foreach(ntree=rep(floor(num.of.tree/cores), cores), .combine=randomForest::combine,
                     .multicombine=TRUE, .packages='randomForest') %dopar% {
-                      randomForest(Load_Mw~.,data= na.omit(clean.df[,!colnames(clean.df)%in%"Year"]),
+                      randomForest(Load_Mw~.,data= na.omit(clean.df[,!colnames(clean.df)%in%"Year"]), #******************ATTENTION*******************
                                    subset=train,
                                    importance=T,
                                    ntree=ntree,
@@ -730,10 +727,15 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
   stopCluster(cl)
 }
 importance(model6)
-varImpPlot(model6)
+#Variable a enlever: holiday, threshold
 
-splines::bs
-
+getTree(model6, labelVar=T)
+summary(model6)
+varImpPlot(model6,main = "Variable importance plot of the RF")
+# library(randomForestExplainer)
+# explain_forest(model6,
+#                interactions = TRUE,
+#                data = na.omit(clean.df[,!colnames(clean.df)%in%"Year"]))
 
 {
   pred.rf <- predict(model6,newdata=clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')])
@@ -766,16 +768,22 @@ new_data[which(abs(res) > quantile(abs(res))[4]),]
 # test, finalement beaucoup trop long a rouler
 #model6.cv <- rf.crossValidation(model6,clean.df[train,-which(colnames(clean.df)=='Load_Mw')],p=1, n=99, ntree=50)
 
-
+# test <- cbind(27854:28022,
+# 6879:7047,
+# 27045:27213,
+# 8801:8969)
 
 par(mfrow =c(2,2))
 for(i in 1:4) {
+  new_data <- clean.df[-train,]
   pige <- sample.int(nrow(new_data)-7*24,1)
   data.plot <- pige:(pige+7*24)
+  ylim.range=c(min(pred.rf[data.plot],new_data[data.plot,'Load_Mw']),
+               max(pred.rf[data.plot],new_data[data.plot,'Load_Mw']))
   
   data.plot %>% pred.rf[.] %>% 
     {plot(.,col='red', type = "l",
-          ylim=c(min(.),max(.)),
+          ylim=ylim.range,
           xlab =paste0(
             names(first(.)) %>% as.Date, 
             "___TO___",
@@ -785,7 +793,7 @@ for(i in 1:4) {
       };
   
   data.plot %>% 
-    {lines(new_data[.,'Load_Mw'],type='l')}#,type='l')};
+    {lines(new_data[.,'Load_Mw'],type='l')}
   
   data.plot %>% 
     {paste0("[",i,"] - ",
