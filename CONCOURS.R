@@ -50,7 +50,7 @@ price.df <- read.csv(paste0(getwd(),'/Database/price_of_electricity.csv'),sep=';
 
 # Rate category
 rate_cat.df <- read.csv(paste0(getwd(),'/Database/rate_category.csv'),sep=';', encoding = "UTF-8")
-rate_cat.df$ID_hour_month <- paste(rate_cat.df$Hour,rate_cat.df$Month,sep='-')
+rate_cat.df$ID_hour_month <- paste(rate_cat.df$Hour, rate_cat.df$Month,sep='-')
 
 # Sunshine
 #getwd()
@@ -193,7 +193,7 @@ ad.df[ad.df$Secteur=='Residentiel',c('Year','Load_PJ')]
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # On va utiliser 70% des donnees pour le training : ----
-train <- 1:(ceiling(0.7*nrow(hour.df)))
+# train <- 1:(ceiling(0.7*nrow(hour.df)))
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ###
@@ -229,25 +229,25 @@ train <- 1:(ceiling(0.7*nrow(hour.df)))
 # HoltWinters(hour_Mw.ts, beta=FALSE, gamma = FALSE) %>% plot()
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Visualisation d'une serie
-acf(hour.df$Load_Mw, lag=24) #autocorrelation par 24h
-acf(hour.df$Load_Mw, lag=24*7)
-acf(hour.year.ts[,"Load_Mw"],lag = 24*365)
-acf(hour.ts[,"Load_Mw"])
-pacf(hour_Mw.ts)
-acf(hour_Mw.ts)
-# auto.arima(hour_Mw.ts)
-decompose(hour_Mw.ts, type = "multiplicative")$random %>% na.omit %>% acf
-corrgram(hour.ts)
+# acf(hour.df$Load_Mw, lag=24) #autocorrelation par 24h
+# acf(hour.df$Load_Mw, lag=24*7)
+# acf(hour.year.ts[,"Load_Mw"],lag = 24*365)
+# acf(hour.ts[,"Load_Mw"])
+# pacf(hour_Mw.ts)
+# acf(hour_Mw.ts)
+# # auto.arima(hour_Mw.ts)
+# decompose(hour_Mw.ts, type = "multiplicative")$random %>% na.omit %>% acf
+# corrgram(hour.ts)
 # on remarque que l'ossiation est constante dans les annees. Ainsi, on peut predire sur tout les annees a partir d'aujourd'hui : https://www.r-bloggers.com/time-series-deep-learning-forecasting-sunspots-with-keras-stateful-lstm-in-r/
 
 # Mesure s'il y a une constance dans la serie (aka, une non croissance p/r au temps)
 # plot(lm(Load_Mw~Date.s, data = hour.df))# %>% summary()
-{plot(hour.df$Date.s, hour.df$Load_Mw,pch='.')
-  lm.fit <- lm(Load_Mw~Date.s, data = hour.df)
-  x.interval <- seq(min(hour.df$Date.s), max(hour.df$Date.s), by = "hour") 
-  abline(lm.fit, col = "red")
-  legend('topright', legend = paste0(c("pente : ", as.character(lm.fit$coefficients["Date.s"]))), bty = 'n')
-  lm.fit %>% summary()}
+# {plot(hour.df$Date.s, hour.df$Load_Mw,pch='.')
+#   lm.fit <- lm(Load_Mw~Date.s, data = hour.df)
+#   x.interval <- seq(min(hour.df$Date.s), max(hour.df$Date.s), by = "hour") 
+#   abline(lm.fit, col = "red")
+#   legend('topright', legend = paste0(c("pente : ", as.character(lm.fit$coefficients["Date.s"]))), bty = 'n')
+#   lm.fit %>% summary()}
 # aggregate(hour.df, by = list(hour.df$Year), mean) %>% lm(Load_Mw~Year, data=.) %>% summary()
 
 
@@ -255,18 +255,6 @@ corrgram(hour.ts)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # CLEAN.df ----
 clean.df <- hour.df
-
-# Ajout du rate category
-{
-  # rate_cat.df$ID_hour_month
-  clean.df$ID_hour_month <- paste(clean.df$Hour,clean.df$Month,sep='-')
-  rate_cat.df <- rate_cat.df[,-which(colnames(rate_cat.df) %in% c('Hour','Month'))]
-  clean.df <- left_join(clean.df,rate_cat.df,by='ID_hour_month')
-  clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_hour_month')]
-  clean.df[which(clean.df$Year < 2006),'Rate'] <- NA
-  clean.df[which(clean.df$Year == 2006 &clean.df$Month < 5 ),'Rate'] <- NA
-  }
-
 
 # On ajoute le jour du mois
 clean.df$Day <- day(clean.df$Date.s)
@@ -480,108 +468,108 @@ clean.df <- clean.df[,-which(colnames(clean.df)=='densite_air')]
 # clean.df$temperature_2 <- clean.df$temperature^2
 
 
-plot(clean.df$Load_Mw[which(clean.df$Month == 10 & clean.df$Year == 2003)],type='l')
-lines(clean.df$Load_Mw[which(clean.df$Month == 10 & clean.df$Year == 2004)])
+# plot(clean.df$Load_Mw[which(clean.df$Month == 10 & clean.df$Year == 2003)],type='l')
+# lines(clean.df$Load_Mw[which(clean.df$Month == 10 & clean.df$Year == 2004)])
 
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Analyse des variables explicatives ----
-
-colnames(clean.df)
-
-# Hour
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[1])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[1])
-# *****
-
-# Year ----
-
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[3])],
-     y=clean.df$Load_Mw,xlab=colnames(clean.df)[3])
-# ****
-
-# Month
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[4])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[4])
-# ****
-
-# precipitation
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[5])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[5])
-# Peu de lien
-
-# temperature
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[6])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[6])
-reg <- lm(Load_Mw ~ poly(temperature,6),clean.df,subset = train)
-summary(reg)
-
-# *****
-
-# irradiance_surface
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[7])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[7])
-# Aucun lien
-
-# irradiance_sommet_atmosphere
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[8])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[8])
-# Aucun lien
-
-# chute.de.neige
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[9])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[9])
-# Peu de lien
-
-# profondeur_neige
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[10])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[10])
-#Peu de lien
-
-# couverture_nuage
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[11])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[11])
-# Aucun lien
-
-# densite_air
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[12])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[12])
-# *****
-
-# Day
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[13])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[13])
-# Aucun lien
-
-# weekday
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[14])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[14])
-# Petit lien
-
-# mean_by_wday_MW
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[15])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[15])
-# Grand lien!!
-
-# year_day
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[16])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[16])
-# Grand lien
-
-# mean_by_yearday_Mw
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[17])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[17])
-# Peu de lien
-
-# Weekend
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[18])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[18])
-# Petit lien
-
-# integer_chauffage
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[19])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[19])
-# lien!
-
-# integer_climatisation
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[20])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[20])
-# lien!
-
-# diff_mean_temp_month
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[21])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[21])
-# Aucun lien
-
-# holiday
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[22])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[22])
-# Lien
-
-plot(with(clean.df,aggregate(Load_Mw,by=list(Year),mean)),type='l')
-
-plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[23])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[23])
+# 
+# colnames(clean.df)
+# 
+# # Hour
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[1])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[1])
+# # *****
+# 
+# # Year ----
+# 
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[3])],
+#      y=clean.df$Load_Mw,xlab=colnames(clean.df)[3])
+# # ****
+# 
+# # Month
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[4])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[4])
+# # ****
+# 
+# # precipitation
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[5])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[5])
+# # Peu de lien
+# 
+# # temperature
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[6])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[6])
+# reg <- lm(Load_Mw ~ poly(temperature,6),clean.df,subset = train)
+# summary(reg)
+# 
+# # *****
+# 
+# # irradiance_surface
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[7])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[7])
+# # Aucun lien
+# 
+# # irradiance_sommet_atmosphere
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[8])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[8])
+# # Aucun lien
+# 
+# # chute.de.neige
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[9])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[9])
+# # Peu de lien
+# 
+# # profondeur_neige
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[10])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[10])
+# #Peu de lien
+# 
+# # couverture_nuage
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[11])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[11])
+# # Aucun lien
+# 
+# # densite_air
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[12])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[12])
+# # *****
+# 
+# # Day
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[13])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[13])
+# # Aucun lien
+# 
+# # weekday
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[14])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[14])
+# # Petit lien
+# 
+# # mean_by_wday_MW
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[15])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[15])
+# # Grand lien!!
+# 
+# # year_day
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[16])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[16])
+# # Grand lien
+# 
+# # mean_by_yearday_Mw
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[17])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[17])
+# # Peu de lien
+# 
+# # Weekend
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[18])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[18])
+# # Petit lien
+# 
+# # integer_chauffage
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[19])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[19])
+# # lien!
+# 
+# # integer_climatisation
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[20])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[20])
+# # lien!
+# 
+# # diff_mean_temp_month
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[21])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[21])
+# # Aucun lien
+# 
+# # holiday
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[22])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[22])
+# # Lien
+# 
+# plot(with(clean.df,aggregate(Load_Mw,by=list(Year),mean)),type='l')
+# 
+# plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[23])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[23])
 
 #clean.df <- clean.df[,-which(colnames(clean.df) %in% c('precipitation',
 #'irradiance_surface',
@@ -599,14 +587,14 @@ plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[23])],y=clean.df
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # PREANALYSE: ----
 # Validations 
-nrow(hd.df) == nrow(w.df)
-nrow(hd.df)
-nrow(ad.df)
+# nrow(hd.df) == nrow(w.df)
+# nrow(hd.df)
+# nrow(ad.df)
 
 # Donnees manquantes
-sapply(hd.df,function(X) sum(is.na(X))) # Aucune donnee manquante
-sapply(w.df,function(X) sum(is.na(X))) # Aucune donnee manquante
-sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
+# sapply(hd.df,function(X) sum(is.na(X))) # Aucune donnee manquante
+# sapply(w.df,function(X) sum(is.na(X))) # Aucune donnee manquante
+# sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 
 
 # plot(hd.df[hd.df$Hour==1,"Total.Energy.Use.from.Electricity..MW."],type='l') # ne fonctionne pas, aucune colonne de nom Total.Energy.Use.from.Electricity..MW.
@@ -736,7 +724,17 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Modele 6 : Random Forest mais sans Year----
+# Ajout du rate category
+{
+  clean.df$ID_hour_month <- paste(clean.df$Hour,clean.df$Month,sep='-')
+  rate_cat.df <- rate_cat.df[,!colnames(rate_cat.df) %in% c('Hour','Month')]
+  clean.df <- left_join(clean.df, rate_cat.df, by ='ID_hour_month')
+  clean.df <- clean.df[,!colnames(clean.df) == 'ID_hour_month']
+  levels(clean.df$Rate) <- c("A", "B", "C", "avant_2006")
+  clean.df[which(clean.df$Weekend==1 | clean.df$holiday==1), "Rate"] <- "A"
+  clean.df[which(clean.df$Year < 2006),'Rate'] <- "avant_2006"
+  clean.df[which(clean.df$Year == 2006 & clean.df$Month < 5 ),'Rate'] <- "avant_2006"
+}
 
 # essayons d'enlever les variables ayant un petit %IncMSE
 # database TUR touve sur : http://www.ontario-hydro.com/historical-rpp-rates
@@ -744,8 +742,22 @@ TUR <- read.csv("Database/Time_of_use_rate.csv",sep = ";")
 TUR$From <- dmy(TUR$From)
 TUR$To <- dmy(TUR$To)
 TUR$interval <- interval(TUR$From, TUR$To)
+clean.dt <- as.data.table(clean.df)
 
-clean.df
+clean.dt[,Price:=0]
+for (i in 1:nrow(TUR)){
+  clean.tmp <- clean.dt[Date.s %within% TUR$interval[i],]
+  clean.tmp[Rate == "A",
+    Price:= TUR$Off.Peak[i]
+    ][Rate == "B",
+      Price:= TUR$Mid.Peak[i]
+    ][Rate == "C",
+      Price:= TUR$On.Peak[i]
+    ][Rate == "avant_2006", # threshold
+      Price:= (TUR[i,]$Low.Threshold+TUR[i,]$High.Threshold)/2
+    ]
+  clean.dt[Date.s %within% TUR$interval[i],] <- clean.tmp
+}; clean.df <- clean.dt %>% as.data.frame()
 
 
 # Database found at : http://www.ontario-hydro.com/current-rates
@@ -777,14 +789,17 @@ clean.df
 # }
 
 
+# Modele 6 : Random Forest mais sans Year----
+# clean.test <- clean.df
+clean.df$Rate <- as.character(clean.df$Rate)
+clean.df <- clean.df[,!colnames(clean.df) %in% c('Date.s','Weekend',
+                                                "price_over_5000_Kw", "price_under_5000_kw", "irradiance_sommet_atmosphere")]
 
-
-clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
-# clean.df <- clean.df[,-which(colnames(clean.df) == 'Year')]
-clean.df <- clean.df[,-which(colnames(clean.df) == 'Weekend')]
 model6 <- my.importance <- my.plot <- R2 <- MSE.rf <- rep(list(NA),length(2003:2016))
-for(i in seq_along(2003:2006)){#seq_along(2003:2016)){
-  # {i=1
+
+for(i in seq_along(2003:2006)){
+  # p$tick()$print()
+  # {i=3
   year.i <- (2003:2016)[i]
   train <- which(clean.df$Year !=  year.i)
   system.time({
@@ -795,7 +810,7 @@ for(i in seq_along(2003:2006)){#seq_along(2003:2016)){
         num.of.tree <- 50
       } else {
         cores <- 10
-        num.of.tree <- 500
+        num.of.tree <- 5
       }
       cl <- makeCluster(cores)
       registerDoParallel(cores)
@@ -804,7 +819,7 @@ for(i in seq_along(2003:2006)){#seq_along(2003:2016)){
     
     model6[[i]] <- foreach(ntree=rep(floor(num.of.tree/cores), cores), .combine=randomForest::combine,
                       .multicombine=TRUE, .packages='randomForest') %dopar% {
-                        randomForest(Load_Mw~.,data= na.omit(clean.df)[,-which(colnames(clean.df) == 'Year')],
+                        randomForest(Load_Mw~.,data= clean.df[,!colnames(clean.df)%in%"Year"],
                                      subset=train,
                                      importance=T,
                                      ntree=ntree,
