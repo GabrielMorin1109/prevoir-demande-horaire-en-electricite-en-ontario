@@ -440,19 +440,19 @@ clean.df <- clean.df[-which(as.POSIXct(date(clean.df$Date.s)) %in% c(as.POSIXct(
 
 # Ajout du prix
 { 
-  clean.df$ID_year_month <- paste(clean.df$Year,clean.df$Month,sep='-')
-  price.df$ID_year_month <- paste(as.numeric(price.df$Year),as.numeric(price.df$Month),sep='-')
- # plot(y=price.df$price_over_5000_Kw,x=price.df$ID_year_month,type='l')
-  price.df <- price.df[,-which(colnames(price.df) %in% c('Month','Year'))]
-  clean.df <- left_join(clean.df,price.df,by='ID_year_month',suffix=c('','.y'))
-  clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_year_month')]
+ #  clean.df$ID_year_month <- paste(clean.df$Year,clean.df$Month,sep='-')
+ #  price.df$ID_year_month <- paste(as.numeric(price.df$Year),as.numeric(price.df$Month),sep='-')
+ # # plot(y=price.df$price_over_5000_Kw,x=price.df$ID_year_month,type='l')
+ #  price.df <- price.df[,-which(colnames(price.df) %in% c('Month','Year'))]
+ #  clean.df <- left_join(clean.df,price.df,by='ID_year_month',suffix=c('','.y'))
+ #  clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_year_month')]
 }
 
-# # Dummy octobre
-# {
-#   clean.df$Octobre <- rep(0,nrow(clean.df))
-#   clean.df$Octobre[which(clean.df$Month == 10)] <- 1  
-# }
+# Dummy octobre
+{
+  clean.df$Octobre <- rep(0,nrow(clean.df))
+  clean.df$Octobre[which(clean.df$Month == 10)] <- 1  
+}
 
   
 
@@ -724,71 +724,49 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 
 # essayons d'enlever les variables ayant un petit %IncMSE
 
-
-
-# clean.df <- clean.df[,-which(colnames(clean.df) == 'Year')]
+clean.df.2 <- clean.df
+clean.df <- clean.df[,-which(colnames(clean.df) == 'Year')]
 clean.df <- clean.df[,-which(colnames(clean.df) == 'Weekend')]
-my.importance <- my.plot <- R2 <- MSE.rf <- rep(list(NA),length(2003:2016))
-for(i in seq_along(2003:2006)){#seq_along(2003:2016)){
-  # {i=1
-  year.i <- (2003:2016)[i]
-  train <- which(clean.df$Year !=  year.i)
+
+
+{
   {
-    {
-      if(detectCores()==8){
-        cores <- 7
-        num.of.tree <- 50
-      } else {
-        cores <- 10
-        num.of.tree <- 500
-      }
-      cl <- makeCluster(cores)
-      registerDoParallel(cores)
-      getDoParWorkers() # Just checking, how many workers you have 
-    }
-    
-    model6 <- foreach(ntree=rep(floor(num.of.tree/cores), cores), .combine=randomForest::combine,
-                      .multicombine=TRUE, .packages='randomForest') %dopar% {
-                        randomForest(Load_Mw~.,data= na.omit(clean.df)[,-which(colnames(clean.df) == 'Year')],
-                                     subset=train,
-                                     importance=T,
-                                     ntree=ntree,
-                                     mtry=12)
-                      }
-    
-    stopCluster(cl)
-    
-    {
-      pred.rf <- predict(model6,newdata=clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')])
-      res <- pred.rf - clean.df[-train,'Load_Mw']
-      (MSE.rf[i] <- mean(abs(res)))
-      (R2[i] <- 1 - (sum((res)^2)/sum((clean.df[-train,'Load_Mw']-mean(clean.df[-train,'Load_Mw']))^2)))
-      # my.plot[i] <- varImpPlot(model6)
-      # my.importance[i] <- importance(model6)
-    }
+    if(detectCores()==8){
+      cores <- 7
+      num.of.tree <- 50
+    } else {
+      cores <- 10
+      num.of.tree <- 50
+        }
+    cl <- makeCluster(cores)
+    registerDoParallel(cores)
+    getDoParWorkers() # Just checking, how many workers you have 
   }
-  # R²:0.9107037 0.9233898 0.9237730 0.6025452 0.6408997 0.9027885 0.9044376 0.9115283 0.9620833 0.9128014 0.8948338 0.9022583 0.8607561 0.8712777
-  # MSE : 194.6650 177.1967 176.7386 463.7290 441.6902 197.2239 209.3494 217.1166 129.2542 189.7765 225.8028 209.3840 274.1831 258.4440
-}
-
-plot(
-  tibble(year= 2003:2016,
-         MSE = c(194.6650, 177.1967, 176.7386, 463.7290, 441.6902, 197.2239, 209.3494, 217.1166, 129.2542, 189.7765, 225.8028, 209.3840, 274.1831, 258.4440)),
-  type = "l")
   
-    #Variable a enlever: holiday, threshold
-varImpPlot(model6)
-
-
+  model6 <- foreach(ntree=rep(floor(num.of.tree/cores), cores), .combine=randomForest::combine,
+                    .multicombine=TRUE, .packages='randomForest') %dopar% {
+                      randomForest(Load_Mw~.,data= na.omit(clean.df[,!colnames(clean.df)%in%"Year"]), #******************ATTENTION*******************
+                                   subset=train,
+                                   importance=T,
+                                   ntree=ntree,
+                                   mtry=12)
+                    }
+  
+  stopCluster(cl)
+}
 importance(model6)
-explain_forest(model6)
 
+#Variable a enlever: holiday, threshold
+varImpPlot(model6)
+explain_forest(model6)
+#min_depth_frame <- min_depth_distribution(model6)
+#plot_min_depth_distribution(min_depth_frame)
 
 
 getTree(model6, labelVar=T)
 summary(model6)
 varImpPlot(model6,main = "Variable importance plot of the RF")
-  # library(randomForestExplainer)
+# library(randomForestExplainer)
 # explain_forest(model6,
 #                interactions = TRUE,
 #                data = na.omit(clean.df[,!colnames(clean.df)%in%"Year"]))
