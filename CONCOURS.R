@@ -723,7 +723,7 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 # Modele 6 : Random Forest mais sans Year----
 
 # essayons d'enlever les variables ayant un petit %IncMSE
-
+# 
 
 
 # clean.df <- clean.df[,-which(colnames(clean.df) == 'Year')]
