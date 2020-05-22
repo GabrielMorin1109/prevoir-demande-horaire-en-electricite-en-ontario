@@ -1008,43 +1008,13 @@ MSE <- as.data.frame(cbind(year_left_out = 2003:2016,MSE = MSE))
 R <- c(0.9107037,0.9233898,0.9237730,0.6025452,0.6408997,0.9027885,0.9044376,0.9115283,0.9620833,0.9128014,0.8948338,0.9022583,0.8607561,0.8712777)
 R <- as.data.frame(cbind(year_left_out = 2003:2016,R = R))
 
-fig <- plot_ly(MSE, x = ~year_left_out, y = ~MSE, name = 'MSE of each random forest', type = 'scatter', mode = 'lines',
-                      line = list(color = 'rgb(205, 12, 24)', width = 4)) 
-
-fig <- fig %>% layout(title = "MSE of each random forest",
-                      xaxis = list(title = "Year used for validation"),
-                      yaxis = list (title = "MSE"))
-
-fig
-
-
-ay <- list(
-  tickfont = list(color = "black"),
-  overlaying = "y",
-  side = "right",
-  title = "R quared"
-)
-fig <- plot_ly()
-fig <- fig %>% add_lines(x = ~2003:2016, y = ~MSE$MSE, name = "MSE")
-fig <- fig %>% add_lines(x = ~2003:2016, y = ~R$R, name = "R squared", yaxis = "y2")
-fig <- fig %>% layout(
-  title = "MSE and R squared of each random forest", 
-  yaxis2 = ay,
-  xaxis = list(title="Year used for validation")
-)
-
-
-fig
-
-fig
-
 par(mar = c(5, 5, 3, 5))
 plot(MSE, type ="l", ylab = "MSE",
      main = "MSE and R squared of each random forest", xlab = "Year used for validation",
-     col = "blue")
+     col = "blue",ylim=c(100,600))
 par(new = TRUE)
 plot(R[,2], type = "l", xaxt = "n", yaxt = "n",
-     ylab = "", xlab = "", col = "red", lty = 2)
+     ylab = "", xlab = "", col = "red", lty = 2,ylim = c(0.4,1.5))
 axis(side = 4)
 mtext("R squared", side = 4, line = 3)
 legend("topleft", c("MSE", "R squared"),
@@ -1052,10 +1022,7 @@ legend("topleft", c("MSE", "R squared"),
 
 
 
-plot_ly(as.data.frame(left_join(MSE,R)), x = ~year_left_out, y = ~MSE, name = 'MSE of each random forest', type = 'scatter', mode = 'lines',
-        line = list(color = 'rgb(205, 12, 24)', width = 4)) %>%
-  add_trace(x = ~year_left_out, y = ~R, mode = "lines", yaxis = "y2", name = "R squared") %>%
-  layout(yaxis2 = list(overlaying = "y", side = "right"))
+
 
 {
   # Modele 7 : random forest avec database en format ts 
