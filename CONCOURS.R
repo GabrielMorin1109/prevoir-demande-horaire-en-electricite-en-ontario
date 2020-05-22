@@ -950,15 +950,112 @@ new_data[which(abs(res) > quantile(abs(res))[4]),]
 # GRAPHIQUES
 
 # Graphique pour l'importance
-min_depth_frame <- min_depth_distribution(model6)
+#for(i in 1:length(model6)){
+ # min_depth_frame <- min_depth_distribution(model6[[i]])  
+#}
+
+{
+  {
+    if(detectCores()==8){
+      cores <- 7
+    } else {
+      cores <- 10
+    }
+    cl <- makeCluster(cores)
+    registerDoParallel(cores)
+    getDoParWorkers() # Just checking, how many workers you have 
+  }
+  
+  foreach(i=1:length(model6), .packages='randomForestExplainer') %do%
+    min_depth_frame.ls[[i]] <- min_depth_distribution(model6[[i]])  
+  
+  stopCluster(cl)  
+  
+  min_depth_frame.ls <- lapply(min_depth_frame.ls,function(my.ls) {cbind(my.ls,test = paste(my.ls$tree,my.ls$variable,sep='-'))})
+  
+  min_depth_frame_off.df <- with(bind_rows(min_depth_frame.ls),aggregate(minimal_depth,by=list(tree,variable),mean))
+  
+  plot_min_depth_distribution(min_depth_frame_off.df)
+  
+}
+
+{
+  # tests
+  plot_min_depth_distribution(min_depth_frame)
+  
+  min_depth_frame.df <- min_depth_distribution(model6)
+  test_2 <- min_depth_frame.df
+  min_depth_frame.ls <- rep(list(NA),length(2003:2016))
+  for(i in 1:14){
+    min_depth_frame.ls[[i]] <- min_depth_frame.df 
+  }
+  
+  
+  min_depth_frame.ls <- lapply(min_depth_frame.ls,function(my.ls) {cbind(my.ls,test = paste(my.ls$tree,my.ls$variable,sep='-'))})
+  
+  min_depth_frame_off.df <- with(bind_rows(min_depth_frame.ls),aggregate(minimal_depth,by=list(tree,variable),mean))
+  
+  plot_min_depth_distribution(min_depth_frame_off.df)  
+}
+
+
+
 
 
 # Graphique pour le MSE
+MSE <- c(194.6650, 177.1967, 176.7386, 463.7290, 441.6902, 197.2239, 209.3494, 217.1166, 129.2542, 189.7765, 225.8028, 209.3840, 274.1831, 258.4440)
+MSE <- as.data.frame(cbind(year_left_out = 2003:2016,MSE = MSE))
+R <- c(0.9107037,0.9233898,0.9237730,0.6025452,0.6408997,0.9027885,0.9044376,0.9115283,0.9620833,0.9128014,0.8948338,0.9022583,0.8607561,0.8712777)
+R <- as.data.frame(cbind(year_left_out = 2003:2016,R = R))
+
+fig <- plot_ly(MSE, x = ~year_left_out, y = ~MSE, name = 'MSE of each random forest', type = 'scatter', mode = 'lines',
+                      line = list(color = 'rgb(205, 12, 24)', width = 4)) 
+
+fig <- fig %>% layout(title = "MSE of each random forest",
+                      xaxis = list(title = "Year used for validation"),
+                      yaxis = list (title = "MSE"))
+
+fig
+
+
+ay <- list(
+  tickfont = list(color = "black"),
+  overlaying = "y",
+  side = "right",
+  title = "R quared"
+)
+fig <- plot_ly()
+fig <- fig %>% add_lines(x = ~2003:2016, y = ~MSE$MSE, name = "MSE")
+fig <- fig %>% add_lines(x = ~2003:2016, y = ~R$R, name = "R squared", yaxis = "y2")
+fig <- fig %>% layout(
+  title = "MSE and R squared of each random forest", 
+  yaxis2 = ay,
+  xaxis = list(title="Year used for validation")
+)
+
+
+fig
+
+fig
+
+par(mar = c(5, 5, 3, 5))
+plot(MSE, type ="l", ylab = "MSE",
+     main = "MSE and R squared of each random forest", xlab = "Year used for validation",
+     col = "blue")
+par(new = TRUE)
+plot(R[,2], type = "l", xaxt = "n", yaxt = "n",
+     ylab = "", xlab = "", col = "red", lty = 2)
+axis(side = 4)
+mtext("R squared", side = 4, line = 3)
+legend("topleft", c("MSE", "R squared"),
+       col = c("blue", "red"), lty = c(1, 2))
 
 
 
-
-
+plot_ly(as.data.frame(left_join(MSE,R)), x = ~year_left_out, y = ~MSE, name = 'MSE of each random forest', type = 'scatter', mode = 'lines',
+        line = list(color = 'rgb(205, 12, 24)', width = 4)) %>%
+  add_trace(x = ~year_left_out, y = ~R, mode = "lines", yaxis = "y2", name = "R squared") %>%
+  layout(yaxis2 = list(overlaying = "y", side = "right"))
 
 {
   # Modele 7 : random forest avec database en format ts 
