@@ -262,8 +262,10 @@ clean.df <- hour.df
   clean.df$ID_hour_month <- paste(clean.df$Hour,clean.df$Month,sep='-')
   rate_cat.df <- rate_cat.df[,-which(colnames(rate_cat.df) %in% c('Hour','Month'))]
   clean.df <- left_join(clean.df,rate_cat.df,by='ID_hour_month')
-  clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_hour_month')]  
-}
+  clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_hour_month')]
+  clean.df[which(clean.df$Year < 2006),'ID_hour_month'] <- NA
+  clean.df[which(clean.df$Year == 2006 &clean.df$Month < 5 ),'ID_hour_month'] <- NA
+  }
 
 
 # On ajoute le jour du mois
