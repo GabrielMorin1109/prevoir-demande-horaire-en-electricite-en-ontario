@@ -2,22 +2,22 @@
 # Library ----
 {
   list.of.packages <- c("MASS", "lmtest", "nortest", "car", "splines", "AER", "COUNT", "pROC", "plotROC", "verification", "ROCR", "aod", "vcd", "statmod", "gam", 
-                "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table", "bestglm", 'dplyr',
-                "xts", "forecast", "tseries", # for time series object
-                "corrgram",'nlme', #correlation gram, semblable a acf
-                "opera", #package arthur
-                # "keras", # info sur son utilisation: https://www.datacamp.com/community/tutorials/keras-r-deep-learning
-                # "tensorflow",
-                'tree', 'randomForest', # pour faire des arbres
-                'doParallel', "foreach", "parallel",
-                'timeDate',
-                'bestglm',
-                'chron',
-                'hutilscpp', #cumsum_reset
-                'rfUtilities', #Pour la cross validation de rf
-                'caret', # for validation
-                'randomForestExplainer')
-
+                        "tidyverse", "stringr", "reshape2", "ggplot2", "plotly", "corrplot", "lubridate", "purrr", "data.table", "bestglm", 'dplyr',
+                        "xts", "forecast", "tseries", # for time series object
+                        "corrgram",'nlme', #correlation gram, semblable a acf
+                        "opera", #package arthur
+                        # "keras", # info sur son utilisation: https://www.datacamp.com/community/tutorials/keras-r-deep-learning
+                        # "tensorflow",
+                        'tree', 'randomForest', # pour faire des arbres
+                        'doParallel', "foreach", "parallel",
+                        'timeDate',
+                        'bestglm',
+                        'chron',
+                        'hutilscpp', #cumsum_reset
+                        'rfUtilities', #Pour la cross validation de rf
+                        'caret', # for validation
+                        'randomForestExplainer')
+  
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages) > 0) {install.packages(new.packages, dependencies = T, quiet =T, repos='https://cran.rstudio.com/')}
   for(package_name in list.of.packages) {library(package_name,character.only=TRUE, quietly = TRUE)}
@@ -117,7 +117,7 @@ hour.I.df <- hour.I.df[which(!is.na(hour.I.df$temperature)),]
 sum(is.na(hour.I.df))
 
 hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %in% c("Date",
-                                                                                 "Group.1")])
+                                                                                     "Group.1")])
 # hour.I.df$Date.s <- force_tz(hour.I.df$Date.s,"America/Toronto")
 
 
@@ -366,16 +366,16 @@ clean.df$weekday <- wday(clean.df$Date.s)
 # my.Load_Mw.mean.day <- with(clean.df,aggregate(Load_Mw, by=list(as.Date(Day)),max))
 
 #temp <- cbind(temp.min = temp.min$x,
- #     temp.max = temp.max$x) %>% as.data.frame()
+#     temp.max = temp.max$x) %>% as.data.frame()
 
 #{
- # plot(temp.min$Group.1, 
-  #     temp.min$x, 
-   #     ylim = c(-30,30),
-    #    type="l"
-     #   )
-  #lines(temp.min$Group.1, temp.max$x, col = "red")
-  #lines(temp.min$Group.1, with(clean.df,aggregate(temperature,by=list(as.Date(Date.s)),mean))$x, col = "blue")
+# plot(temp.min$Group.1, 
+#     temp.min$x, 
+#     ylim = c(-30,30),
+#    type="l"
+#   )
+#lines(temp.min$Group.1, temp.max$x, col = "red")
+#lines(temp.min$Group.1, with(clean.df,aggregate(temperature,by=list(as.Date(Date.s)),mean))$x, col = "blue")
 #}
 
 # Octobre ----
@@ -416,20 +416,20 @@ clean.df <- clean.df[-which(as.POSIXct(date(clean.df$Date.s)) %in% c(as.POSIXct(
 
 # On va creer notre variable groups
 #{
-  #clean.df$group_of_temperature <- rep(NA,nrow(clean.df))
-  #clean.df$group_of_temperature[which(clean.df$temperature>=(-30)&clean.df$temperature<(-10))] <- '[-30,-10)'
-  #clean.df$group_of_temperature[which(clean.df$temperature>=(-10)&clean.df$temperature<0)] <- '[-10,0)'
-  #clean.df$group_of_temperature[which(clean.df$temperature>=(0)&clean.df$temperature<(10))] <- '[0,10)'
-  #clean.df$group_of_temperature[which(clean.df$temperature>=10&clean.df$temperature<15)] <- '[10,15)'
-  #clean.df$group_of_temperature[which(clean.df$temperature>=(15)&clean.df$temperature<(20))] <- '[15,20)'
-  #clean.df$group_of_temperature[which(clean.df$temperature>=(20)&clean.df$temperature<(25))] <- '[20,25)'
-  #clean.df$group_of_temperature[which(clean.df$temperature>=(25)&clean.df$temperature<(30))] <- '[25,30)'
-  #clean.df$group_of_temperature[which(clean.df$temperature>=(30)&clean.df$temperature<(40))] <- '[30,40)'
-  
-  #mean_Load_Mw_by_temp <- with(clean.df,aggregate(Load_Mw,by=list(group_of_temperature),mean))
-  #colnames(mean_Load_Mw_by_temp) <- c('group_of_temperature','mean_Load_Mw_by_temp')
-  #clean.df <- left_join(clean.df,mean_Load_Mw_by_temp,by='group_of_temperature',suffix=c('','.y'))  
-  #clean.df <- clean.df[,-which(colnames(clean.df)=='group_of_temperature')]
+#clean.df$group_of_temperature <- rep(NA,nrow(clean.df))
+#clean.df$group_of_temperature[which(clean.df$temperature>=(-30)&clean.df$temperature<(-10))] <- '[-30,-10)'
+#clean.df$group_of_temperature[which(clean.df$temperature>=(-10)&clean.df$temperature<0)] <- '[-10,0)'
+#clean.df$group_of_temperature[which(clean.df$temperature>=(0)&clean.df$temperature<(10))] <- '[0,10)'
+#clean.df$group_of_temperature[which(clean.df$temperature>=10&clean.df$temperature<15)] <- '[10,15)'
+#clean.df$group_of_temperature[which(clean.df$temperature>=(15)&clean.df$temperature<(20))] <- '[15,20)'
+#clean.df$group_of_temperature[which(clean.df$temperature>=(20)&clean.df$temperature<(25))] <- '[20,25)'
+#clean.df$group_of_temperature[which(clean.df$temperature>=(25)&clean.df$temperature<(30))] <- '[25,30)'
+#clean.df$group_of_temperature[which(clean.df$temperature>=(30)&clean.df$temperature<(40))] <- '[30,40)'
+
+#mean_Load_Mw_by_temp <- with(clean.df,aggregate(Load_Mw,by=list(group_of_temperature),mean))
+#colnames(mean_Load_Mw_by_temp) <- c('group_of_temperature','mean_Load_Mw_by_temp')
+#clean.df <- left_join(clean.df,mean_Load_Mw_by_temp,by='group_of_temperature',suffix=c('','.y'))  
+#clean.df <- clean.df[,-which(colnames(clean.df)=='group_of_temperature')]
 #}
 
 
@@ -440,21 +440,21 @@ clean.df <- clean.df[-which(as.POSIXct(date(clean.df$Date.s)) %in% c(as.POSIXct(
 
 # Ajout du prix
 { 
- #  clean.df$ID_year_month <- paste(clean.df$Year,clean.df$Month,sep='-')
- #  price.df$ID_year_month <- paste(as.numeric(price.df$Year),as.numeric(price.df$Month),sep='-')
- # # plot(y=price.df$price_over_5000_Kw,x=price.df$ID_year_month,type='l')
- #  price.df <- price.df[,-which(colnames(price.df) %in% c('Month','Year'))]
- #  clean.df <- left_join(clean.df,price.df,by='ID_year_month',suffix=c('','.y'))
- #  clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_year_month')]
+  clean.df$ID_year_month <- paste(clean.df$Year,clean.df$Month,sep='-')
+  price.df$ID_year_month <- paste(as.numeric(price.df$Year),as.numeric(price.df$Month),sep='-')
+  # plot(y=price.df$price_over_5000_Kw,x=price.df$ID_year_month,type='l')
+  price.df <- price.df[,-which(colnames(price.df) %in% c('Month','Year'))]
+  clean.df <- left_join(clean.df,price.df,by='ID_year_month',suffix=c('','.y'))
+  clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_year_month')]
 }
 
-# Dummy octobre
-{
-  clean.df$Octobre <- rep(0,nrow(clean.df))
-  clean.df$Octobre[which(clean.df$Month == 10)] <- 1  
-}
+# # Dummy octobre
+# {
+#   clean.df$Octobre <- rep(0,nrow(clean.df))
+#   clean.df$Octobre[which(clean.df$Month == 10)] <- 1  
+# }
 
-  
+
 
 # On enleve Date.s pcq cest un identifiant unique sur chaque ligne
 rownames(clean.df) <- clean.df$Date.s # ne marche pas sur mon ordi (Mathilde)
@@ -568,14 +568,14 @@ plot(with(clean.df,aggregate(Load_Mw,by=list(Year),mean)),type='l')
 plot(x=clean.df[,which(colnames(clean.df) == colnames(clean.df)[23])],y=clean.df$Load_Mw,xlab=colnames(clean.df)[23])
 
 #clean.df <- clean.df[,-which(colnames(clean.df) %in% c('precipitation',
-                                                       #'irradiance_surface',
-                                                      # 'irradiance_sommet_atmosphere',
-                                                       #'chute.de.neige',
-                                                      # 'profondeur_neige',
-                                                      # 'couverture_nuage',
-                                                      # 'densite_air',
-                                                      # 'Day',
-                                                       #'diff_mean_temp_month'))]
+#'irradiance_surface',
+# 'irradiance_sommet_atmosphere',
+#'chute.de.neige',
+# 'profondeur_neige',
+# 'couverture_nuage',
+# 'densite_air',
+# 'Day',
+#'diff_mean_temp_month'))]
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -610,112 +610,112 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 
 # plot(x=hour.df$temperature,y=hour.df$Load_Mw)
 # 
- {
-#   # Modele 1 : Base sur cet article (https://freakonometrics.hypotheses.org/52081) 
-#   
-#   plot(hd.df[hd.df$Year == 2003,3],type='l')
-#   model1 <- lm(Load_Mw ~ poly(Hour,3) + poly(Month,3) + Year, data=hd.df, subset = which(hd.df$Year %in% c(2003:2005))) # il faut mettre plus d'une valeur de Year, sinon le lm exclus la variable explicative 
-#   summary(model1) #Year est NA dans le modele,  normal?
-#   
-#   new_data <- hd.df[hd.df$Year == 2016,]
-#   p = predict(model1,newdata=new_data[1:100,]) #
-#   plot(new_data[1:100,3],type='l')
-#   lines(p[1:100],col='red')
-#   # Clairement pas great comme modele, on va ajouter la temperature
-#   
-#   
-#   # Modele 2 : Ajout de la temperature 
-#   class(hd.df$Date.s)
-#   class(w.df$Date)
-#   # w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm() # pas necessaire, ligne en haut qui fait la meme chose
-#   
-#   
-#   
-#   
-#   plot(x=hour.df$temperature,y=hour.df$Load_Mw)
-#   
-#   model2 <- lm(Load_Mw ~ poly(Hour,3) + poly(Month,3) + Year + bs(temperature),data=hour.df[hour.df$Year != 2016,]) 
-#   # j'ai mis bs pour la temperature pcq poly ne marchait pas
-#   summary(model2)
-#   
-#   new_data <- hour.df[hour.df$Year == 2016,]
-#   p = predict(model2,newdata=new_data[1:110,c(2,5,4,8)])
-#   plot(new_data[1:100,3],type='l')
-#   lines(p[1:100],col='red')
-#   # Deja beaucoup mieux
-#   
-#   # Modele 3 : premier essaie pour l'arbre 
-#   hour.df.test <- hour.df[-train,]
-#   
-#   model3 <- tree(Load_Mw ~ .,data=hour.df,subset=train)
-#   summary(model3)
-#   plot(model3)
-#   text(model3,pretty=0)
-#   
-#   pred <- predict(model3,hour.df.test)
-#   plot(hour.df.test[1:100,3],type='l')
-#   lines(pred[1:100],col='red')
-#   
-#   # On va essayer de prune l'arbre pour avoir des meilleurs resultats
-#   cv.model3 <- cv.tree(model3)
-#   # dev correspond au cross-validation error rate
-#   # On utilise la cross validation pour savoir si du pruning est necessaire. Puisque le cross validation utilise un subtree, un devrait prune je pense
-#   plot(cv.model3$size,cv.model3$dev,type='b') # Aucune idee ce que signifie ce graph, c'etait ce qui faisait dans le livre
-#   plot(cv.model3$k,cv.model3$dev,type='b')  # Aucune idee ce que signifie ce graph, c'etait ce qui faisait dans le livre
-#   
-#   prune.model3 <- prune.tree(model3,best=5)
-#   plot(prune.model3)
-#   text(prune.model3,pretty=0)
-#   
-#   pred <- predict(prune.model3,hour.df.test)
-#   plot(pred,hour.df.test[,'Load_Mw'])
-#   abline(0,1)
-#   # Clairement pas obtimal
-#   MSE <- mean((pred-hour.df.test[,'Load_Mw'])^2) # Immense MSE
-#   sqrt(MSE) # Les predictions sont around 1978 Mw de la vraie valeur
-#   
-#   
-#   # Modele 4 : Premier essaie de random forest 
-#   
-#   #model4 <- randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,mtry=13,importance=T)
-#   #randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,importance=T)
-#   
-#   mini.df <- hour.df[train,c('Hour','Year','Load_Mw','temperature','profondeur_neige','densite_air')]
-#   
-#   model4 <- randomForest(Load_Mw ~ .,data=na.omit(mini.df), mtry = length(colnames(mini.df))/3, importance = TRUE, ntree = 50)
-#   summary(model4)
-#   importance(model4)
-#   
-#   new_data <- hour.df[-train,c('Hour','Year','Load_Mw','temperature','profondeur_neige','densite_air')]
-#   pred.rf <- predict(model4,newdata=new_data)
-#   MSE.rf <- mean((pred.rf-mini.df$Load_Mw)^2) # Encore immense...
-#   sqrt(MSE)
-#   varImpPlot(model4)
-#   
-#   plot(new_data[300:400,'Load_Mw'],type='l')
-#   lines(pred.rf[300:400],col='red')
-#   # Not bad!!
-#   
-#   # Modele 5 : Essayons de rouler une random forest en parallel pour voir ce que ca donne quand on la laisse decider des variables
-#   cores <- 6
-#   cl <- makeCluster(cores)
-#   registerDoParallel(cores)
-#   getDoParWorkers() # Just checking, how many workers you have
-#   
-#   model5 <- randomForest(Load_Mw~.,data=hour.df,subset=train,importance=T)
-#   importance(model5) # On remarque beaucoup de redondance, genre surement pas besoin de Date.s, Date, Hour, Year, Month, Group.1... je vais faire une base cleaner lundi
-#   # Je pensais que la random forest utiliserait juste les variables pertinentes comme le tree l'avais fait, mais on dirait pas finalement...
-#   pred.rf.2 <- predict(model5,newdata=hour.df[-train,])
-#   MSE.rf.2 <- mean((pred.rf.2-hour.df[-train,'Load_Mw'])^2)
-#   sqrt(MSE.rf.2) # Considerablement plus petit que ce qu'on a eu jusqu'a present!
-#   
-#   new_data <- hour.df[-train,]
-#   plot(new_data[1:100,'Load_Mw'],type='l')
-#   lines(pred.rf.2[1:100],col='red')
-#   
-#   stopCluster(cl)
-#   
- } # ABANDONS
+{
+  #   # Modele 1 : Base sur cet article (https://freakonometrics.hypotheses.org/52081) 
+  #   
+  #   plot(hd.df[hd.df$Year == 2003,3],type='l')
+  #   model1 <- lm(Load_Mw ~ poly(Hour,3) + poly(Month,3) + Year, data=hd.df, subset = which(hd.df$Year %in% c(2003:2005))) # il faut mettre plus d'une valeur de Year, sinon le lm exclus la variable explicative 
+  #   summary(model1) #Year est NA dans le modele,  normal?
+  #   
+  #   new_data <- hd.df[hd.df$Year == 2016,]
+  #   p = predict(model1,newdata=new_data[1:100,]) #
+  #   plot(new_data[1:100,3],type='l')
+  #   lines(p[1:100],col='red')
+  #   # Clairement pas great comme modele, on va ajouter la temperature
+  #   
+  #   
+  #   # Modele 2 : Ajout de la temperature 
+  #   class(hd.df$Date.s)
+  #   class(w.df$Date)
+  #   # w.df$Date.s <- w.df$Date %>% as.character() %>% ymd_hm() # pas necessaire, ligne en haut qui fait la meme chose
+  #   
+  #   
+  #   
+  #   
+  #   plot(x=hour.df$temperature,y=hour.df$Load_Mw)
+  #   
+  #   model2 <- lm(Load_Mw ~ poly(Hour,3) + poly(Month,3) + Year + bs(temperature),data=hour.df[hour.df$Year != 2016,]) 
+  #   # j'ai mis bs pour la temperature pcq poly ne marchait pas
+  #   summary(model2)
+  #   
+  #   new_data <- hour.df[hour.df$Year == 2016,]
+  #   p = predict(model2,newdata=new_data[1:110,c(2,5,4,8)])
+  #   plot(new_data[1:100,3],type='l')
+  #   lines(p[1:100],col='red')
+  #   # Deja beaucoup mieux
+  #   
+  #   # Modele 3 : premier essaie pour l'arbre 
+  #   hour.df.test <- hour.df[-train,]
+  #   
+  #   model3 <- tree(Load_Mw ~ .,data=hour.df,subset=train)
+  #   summary(model3)
+  #   plot(model3)
+  #   text(model3,pretty=0)
+  #   
+  #   pred <- predict(model3,hour.df.test)
+  #   plot(hour.df.test[1:100,3],type='l')
+  #   lines(pred[1:100],col='red')
+  #   
+  #   # On va essayer de prune l'arbre pour avoir des meilleurs resultats
+  #   cv.model3 <- cv.tree(model3)
+  #   # dev correspond au cross-validation error rate
+  #   # On utilise la cross validation pour savoir si du pruning est necessaire. Puisque le cross validation utilise un subtree, un devrait prune je pense
+  #   plot(cv.model3$size,cv.model3$dev,type='b') # Aucune idee ce que signifie ce graph, c'etait ce qui faisait dans le livre
+  #   plot(cv.model3$k,cv.model3$dev,type='b')  # Aucune idee ce que signifie ce graph, c'etait ce qui faisait dans le livre
+  #   
+  #   prune.model3 <- prune.tree(model3,best=5)
+  #   plot(prune.model3)
+  #   text(prune.model3,pretty=0)
+  #   
+  #   pred <- predict(prune.model3,hour.df.test)
+  #   plot(pred,hour.df.test[,'Load_Mw'])
+  #   abline(0,1)
+  #   # Clairement pas obtimal
+  #   MSE <- mean((pred-hour.df.test[,'Load_Mw'])^2) # Immense MSE
+  #   sqrt(MSE) # Les predictions sont around 1978 Mw de la vraie valeur
+  #   
+  #   
+  #   # Modele 4 : Premier essaie de random forest 
+  #   
+  #   #model4 <- randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,mtry=13,importance=T)
+  #   #randomForest(Load_Mw~.,data=na.exclude(hour.df),subset=train,importance=T)
+  #   
+  #   mini.df <- hour.df[train,c('Hour','Year','Load_Mw','temperature','profondeur_neige','densite_air')]
+  #   
+  #   model4 <- randomForest(Load_Mw ~ .,data=na.omit(mini.df), mtry = length(colnames(mini.df))/3, importance = TRUE, ntree = 50)
+  #   summary(model4)
+  #   importance(model4)
+  #   
+  #   new_data <- hour.df[-train,c('Hour','Year','Load_Mw','temperature','profondeur_neige','densite_air')]
+  #   pred.rf <- predict(model4,newdata=new_data)
+  #   MSE.rf <- mean((pred.rf-mini.df$Load_Mw)^2) # Encore immense...
+  #   sqrt(MSE)
+  #   varImpPlot(model4)
+  #   
+  #   plot(new_data[300:400,'Load_Mw'],type='l')
+  #   lines(pred.rf[300:400],col='red')
+  #   # Not bad!!
+  #   
+  #   # Modele 5 : Essayons de rouler une random forest en parallel pour voir ce que ca donne quand on la laisse decider des variables
+  #   cores <- 6
+  #   cl <- makeCluster(cores)
+  #   registerDoParallel(cores)
+  #   getDoParWorkers() # Just checking, how many workers you have
+  #   
+  #   model5 <- randomForest(Load_Mw~.,data=hour.df,subset=train,importance=T)
+  #   importance(model5) # On remarque beaucoup de redondance, genre surement pas besoin de Date.s, Date, Hour, Year, Month, Group.1... je vais faire une base cleaner lundi
+  #   # Je pensais que la random forest utiliserait juste les variables pertinentes comme le tree l'avais fait, mais on dirait pas finalement...
+  #   pred.rf.2 <- predict(model5,newdata=hour.df[-train,])
+  #   MSE.rf.2 <- mean((pred.rf.2-hour.df[-train,'Load_Mw'])^2)
+  #   sqrt(MSE.rf.2) # Considerablement plus petit que ce qu'on a eu jusqu'a present!
+  #   
+  #   new_data <- hour.df[-train,]
+  #   plot(new_data[1:100,'Load_Mw'],type='l')
+  #   lines(pred.rf.2[1:100],col='red')
+  #   
+  #   stopCluster(cl)
+  #   
+} # ABANDONS
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -724,43 +724,65 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 
 # essayons d'enlever les variables ayant un petit %IncMSE
 
-clean.df.2 <- clean.df
-clean.df <- clean.df[,-which(colnames(clean.df) == 'Year')]
+
+
+# clean.df <- clean.df[,-which(colnames(clean.df) == 'Year')]
 clean.df <- clean.df[,-which(colnames(clean.df) == 'Weekend')]
-
-
-{
+my.importance <- my.plot <- R2 <- MSE.rf <- rep(list(NA),length(2003:2016))
+for(i in seq_along(2003:2006)){#seq_along(2003:2016)){
+  # {i=1
+  year.i <- (2003:2016)[i]
+  train <- which(clean.df$Year !=  year.i)
   {
-    if(detectCores()==8){
-      cores <- 7
-      num.of.tree <- 50
-    } else {
-      cores <- 10
-      num.of.tree <- 50
-        }
-    cl <- makeCluster(cores)
-    registerDoParallel(cores)
-    getDoParWorkers() # Just checking, how many workers you have 
+    {
+      if(detectCores()==8){
+        cores <- 7
+        num.of.tree <- 50
+      } else {
+        cores <- 10
+        num.of.tree <- 500
+      }
+      cl <- makeCluster(cores)
+      registerDoParallel(cores)
+      getDoParWorkers() # Just checking, how many workers you have 
+    }
+    
+    model6 <- foreach(ntree=rep(floor(num.of.tree/cores), cores), .combine=randomForest::combine,
+                      .multicombine=TRUE, .packages='randomForest') %dopar% {
+                        randomForest(Load_Mw~.,data= na.omit(clean.df)[,-which(colnames(clean.df) == 'Year')],
+                                     subset=train,
+                                     importance=T,
+                                     ntree=ntree,
+                                     mtry=12)
+                      }
+    
+    stopCluster(cl)
+    
+    {
+      pred.rf <- predict(model6,newdata=clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')])
+      res <- pred.rf - clean.df[-train,'Load_Mw']
+      (MSE.rf[i] <- mean(abs(res)))
+      (R2[i] <- 1 - (sum((res)^2)/sum((clean.df[-train,'Load_Mw']-mean(clean.df[-train,'Load_Mw']))^2)))
+      # my.plot[i] <- varImpPlot(model6)
+      # my.importance[i] <- importance(model6)
+    }
   }
-  
-  model6 <- foreach(ntree=rep(floor(num.of.tree/cores), cores), .combine=randomForest::combine,
-                    .multicombine=TRUE, .packages='randomForest') %dopar% {
-                      randomForest(Load_Mw~.,data= na.omit(clean.df[,!colnames(clean.df)%in%"Year"]), #******************ATTENTION*******************
-                                   subset=train,
-                                   importance=T,
-                                   ntree=ntree,
-                                   mtry=12)
-                    }
-  
-  stopCluster(cl)
+  # R²:0.9107037 0.9233898 0.9237730 0.6025452 0.6408997 0.9027885 0.9044376 0.9115283 0.9620833 0.9128014 0.8948338 0.9022583 0.8607561 0.8712777
+  # MSE : 194.6650 177.1967 176.7386 463.7290 441.6902 197.2239 209.3494 217.1166 129.2542 189.7765 225.8028 209.3840 274.1831 258.4440
 }
-importance(model6)
+
+plot(
+  tibble(year= 2003:2016,
+         MSE = c(194.6650, 177.1967, 176.7386, 463.7290, 441.6902, 197.2239, 209.3494, 217.1166, 129.2542, 189.7765, 225.8028, 209.3840, 274.1831, 258.4440)),
+  type = "l")
 
 #Variable a enlever: holiday, threshold
 varImpPlot(model6)
+
+
+importance(model6)
 explain_forest(model6)
-#min_depth_frame <- min_depth_distribution(model6)
-#plot_min_depth_distribution(min_depth_frame)
+
 
 
 getTree(model6, labelVar=T)
@@ -825,8 +847,8 @@ for(i in 1:4) {
             "___TO___",
             names(last(.)) %>% as.Date
           ) 
-          )
-      };
+    )
+    };
   
   data.plot %>% 
     {lines(new_data[.,'Load_Mw'],type='l')}
@@ -836,15 +858,15 @@ for(i in 1:4) {
             as.character(first(.)),":", 
             as.character(last(.)),
             "   (",
-              new_data$weekday[first(.)], 
-              "__to__", 
-              new_data$weekday[last(.)],
+            new_data$weekday[first(.)], 
+            "__to__", 
+            new_data$weekday[last(.)],
             ")"
-            )
-      } %>% title()
+    )
+    } %>% title()
 }
 # data.plot %>% 
-  # {plot(pred.rf[.],col='red', type = "l")}
+# {plot(pred.rf[.],col='red', type = "l")}
 
 # plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],type='l')
 # lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2013)],col='red')
@@ -939,10 +961,10 @@ fig <- plot_ly(data.frame(Load_Mw=pred.rf),x=~, y = ~Load_Mw, type = 'scatter', 
   
   
   #{
-   # cores <- 6
-    #cl <- makeCluster(cores)
-    #registerDoParallel(cores)
-    #getDoParWorkers() 
+  # cores <- 6
+  #cl <- makeCluster(cores)
+  #registerDoParallel(cores)
+  #getDoParWorkers() 
   #}
   
   #model7 <- randomForest(Load_Mw~.,data=clean.test.ts,subset=train,importance=T,ntree=50)
@@ -953,9 +975,9 @@ fig <- plot_ly(data.frame(Load_Mw=pred.rf),x=~, y = ~Load_Mw, type = 'scatter', 
   #importance(model7)
   
   #{
-   # pred.rf.3 <- predict(model7,newdata=clean.test.ts[-train,])
-    #MSE.rf.3 <- mean((pred.rf.3-clean.test.ts[-train,'Load_Mw'])^2)
-    #sqrt(MSE.rf.3) # Plus bas qu'avec le data.frame, ce modele est donc meilleur!
+  # pred.rf.3 <- predict(model7,newdata=clean.test.ts[-train,])
+  #MSE.rf.3 <- mean((pred.rf.3-clean.test.ts[-train,'Load_Mw'])^2)
+  #sqrt(MSE.rf.3) # Plus bas qu'avec le data.frame, ce modele est donc meilleur!
   #}
   
   
@@ -983,9 +1005,9 @@ fig <- plot_ly(data.frame(Load_Mw=pred.rf),x=~, y = ~Load_Mw, type = 'scatter', 
   #importance(model8)
   
   #{
-   # pred.rf.3 <- predict(model8,newdata=clean.2.ts[-train,])
+  # pred.rf.3 <- predict(model8,newdata=clean.2.ts[-train,])
   #  MSE.rf.3 <- mean((pred.rf.3-clean.2.ts[-train,'Load_Mw'])^2)
-   # sqrt(MSE.rf.3) # Plus bas qu'avec le data.frame, ce modele est donc meilleur!
+  # sqrt(MSE.rf.3) # Plus bas qu'avec le data.frame, ce modele est donc meilleur!
   #}
   
   
