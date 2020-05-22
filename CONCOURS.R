@@ -258,7 +258,7 @@ clean.df <- hour.df
 
 # Ajout du rate category
 {
-  rate_cat.df$ID_hour_month
+  # rate_cat.df$ID_hour_month
   clean.df$ID_hour_month <- paste(clean.df$Hour,clean.df$Month,sep='-')
   rate_cat.df <- rate_cat.df[,-which(colnames(rate_cat.df) %in% c('Hour','Month'))]
   clean.df <- left_join(clean.df,rate_cat.df,by='ID_hour_month')
@@ -742,6 +742,9 @@ TUR <- read.csv("Database/Time_of_use_rate.csv",sep = ";")
 TUR$From <- dmy(TUR$From)
 TUR$To <- dmy(TUR$To)
 TUR$interval <- interval(TUR$From, TUR$To)
+
+clean.df
+
 
 # Database found at : http://www.ontario-hydro.com/current-rates
 # post data.table: http://brooksandrew.github.io/simpleblog/articles/advanced-data-table/
