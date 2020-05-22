@@ -48,6 +48,10 @@ str(w.df)
 
 price.df <- read.csv(paste0(getwd(),'/Database/price_of_electricity.csv'),sep=';', encoding = "UTF-8")
 
+# Rate category
+rate_cat.df <- read.csv(paste0(getwd(),'/Database/rate_category.csv'),sep=';', encoding = "UTF-8")
+rate_cat.df$ID_hour_month <- paste(rate_cat.df$Hour,rate_cat.df$Month,sep='-')
+
 # Sunshine
 #getwd()
 #sun.df <- fromJSON(file = paste0(getwd(),'/Database/sunshine.json'))
@@ -251,6 +255,16 @@ corrgram(hour.ts)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # CLEAN.df ----
 clean.df <- hour.df
+
+# Ajout du rate category
+{
+  rate_cat.df$ID_hour_month
+  clean.df$ID_hour_month <- paste(clean.df$Hour,clean.df$Month,sep='-')
+  rate_cat.df <- rate_cat.df[,-which(colnames(rate_cat.df) %in% c('Hour','Month'))]
+  clean.df <- left_join(clean.df,rate_cat.df,by='ID_hour_month')
+  clean.df <- clean.df[,-which(colnames(clean.df) == 'ID_hour_month')]  
+}
+
 
 # On ajoute le jour du mois
 clean.df$Day <- day(clean.df$Date.s)
@@ -1011,14 +1025,13 @@ R <- as.data.frame(cbind(year_left_out = 2003:2016,R = R))
 par(mar = c(5, 5, 3, 5))
 plot(MSE, type ="l", ylab = "MSE",
      main = "MSE and R squared of each random forest", xlab = "Year used for validation",
-     col = "blue",ylim=c(100,600))
+     col = "blue")
 par(new = TRUE)
 plot(R[,2], type = "l", xaxt = "n", yaxt = "n",
-     ylab = "", xlab = "", col = "red", lty = 2,ylim = c(0.4,1.5))
+     ylab = "", xlab = "", col = "red", lty = 2,ylim = c(0.4,1))
 axis(side = 4)
 mtext("R squared", side = 4, line = 3)
-legend("topleft", c("MSE", "R squared"),
-       col = c("blue", "red"), lty = c(1, 2))
+
 
 
 
