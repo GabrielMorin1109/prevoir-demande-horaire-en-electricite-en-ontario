@@ -790,16 +790,15 @@ for (i in 1:nrow(TUR)){
 
 
 # Modele 6 : Random Forest mais sans Year----
-# clean.test <- clean.df
-clean.df$Rate <- as.character(clean.df$Rate)
+clean.test <- clean.df
+# clean.df <- clean.test
+# clean.df$Rate <- as.character(clean.df$Rate)
 clean.df <- clean.df[,!colnames(clean.df) %in% c('Date.s','Weekend',
                                                 "price_over_5000_Kw", "price_under_5000_kw", "irradiance_sommet_atmosphere")]
-
+str(clean.df)
 model6 <- my.importance <- my.plot <- R2 <- MSE.rf <- rep(list(NA),length(2003:2016))
 
-for(i in seq_along(2003:2006)){
-  # p$tick()$print()
-  # {i=3
+for(i in seq_along(2003:2008)){
   year.i <- (2003:2016)[i]
   train <- which(clean.df$Year !=  year.i)
   system.time({
@@ -810,7 +809,7 @@ for(i in seq_along(2003:2006)){
         num.of.tree <- 50
       } else {
         cores <- 10
-        num.of.tree <- 5
+        num.of.tree <- 100
       }
       cl <- makeCluster(cores)
       registerDoParallel(cores)
@@ -822,8 +821,8 @@ for(i in seq_along(2003:2006)){
                         randomForest(Load_Mw~.,data= clean.df[,!colnames(clean.df)%in%"Year"],
                                      subset=train,
                                      importance=T,
-                                     ntree=ntree,
-                                     mtry=12)
+                                     ntree=ntree)#,
+                                     # mtry=12)
                       }
     
     stopCluster(cl)
@@ -847,8 +846,10 @@ plot(
   type = "l")
 
 #Variable a enlever: holiday, threshold
-varImpPlot(model6)
-
+varImpPlot(model6[[i]])
+test <- model6[[i]]
+randomForest::(test)
+test2 <- randomForest(mpg ~ ., mtcars, keep.forest=FALSE, ntree=100)
 
 importance(model6)
 explain_forest(model6)
