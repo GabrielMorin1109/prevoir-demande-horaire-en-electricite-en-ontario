@@ -778,13 +778,11 @@ plot(
   
     #Variable a enlever: holiday, threshold
 varImpPlot(model6)
-<<<<<<< HEAD
+
 
 importance(model6)
-
-=======
 explain_forest(model6)
->>>>>>> b9429daf55199d9c93832529c302d29604525ad1
+
 
 
 getTree(model6, labelVar=T)
