@@ -458,7 +458,7 @@ clean.df <- clean.df[-which(as.POSIXct(date(clean.df$Date.s)) %in% c(as.POSIXct(
 
 # On enleve Date.s pcq cest un identifiant unique sur chaque ligne
 rownames(clean.df) <- clean.df$Date.s # ne marche pas sur mon ordi (Mathilde)
-clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
+# clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
 clean.df <- clean.df[,-which(colnames(clean.df)=='irradiance_surface')]
 clean.df <- clean.df[,-which(colnames(clean.df)=='densite_air')]
 # clean.df$temperature_2 <- clean.df$temperature^2
@@ -723,9 +723,53 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 # Modele 6 : Random Forest mais sans Year----
 
 # essayons d'enlever les variables ayant un petit %IncMSE
+# database TUR touve sur : http://www.ontario-hydro.com/historical-rpp-rates
+TUR <- read.csv("Database/Time_of_use_rate.csv",sep = ";")
+TUR$From <- dmy(TUR$From)
+TUR$To <- dmy(TUR$To)
+TUR$interval <- interval(TUR$From, TUR$To)
+
+# Database found at : http://www.ontario-hydro.com/current-rates
+# post data.table: http://brooksandrew.github.io/simpleblog/articles/advanced-data-table/
+{
+  TUP.dt <- read.csv("Database/Time_of_Use_Pricing.csv", sep=";") %>% as.data.table()
+  # TUP.dt[,Year:=2002]
+  TUP.ls <- rep(list(TUP.dt),length(2003:2016))
+  i <- 0
+  TUP.ls <- lapply(TUP.ls, function(TUP){
+    i <<- 1+i
+    TUP$Year <- 2003+i
+  
+    
+    TUP[,date.I:= paste0(Year,"-", Month_start) %>% 
+          ymd()
+      ]
+    
+    TUP[Tarif == "Summer", 
+        date.F:= paste0(Year, "-", Month_end) %>% 
+          ymd()
+        ][Tarif == "Winter",
+          date.F:= paste0((Year+1), "-", Month_end) %>% 
+            ymd()
+        ]
+  })
+  rm(i)
+  TUP.df <- TUP.ls %>% rbindlist() %>% as.data.frame()
+}
 
 
 
+
+
+
+
+left_join(clean.df, TUP, by=clean.df$Year)
+TUP.dt <- as.data.table(TUP)
+clean.dt <- as.data.table(clean.df, key = "Year")
+merge(clean.dt,TUP.dt)
+
+
+clean.df <- clean.df[,-which(colnames(clean.df)=='Date.s')]
 # clean.df <- clean.df[,-which(colnames(clean.df) == 'Year')]
 clean.df <- clean.df[,-which(colnames(clean.df) == 'Weekend')]
 model6 <- my.importance <- my.plot <- R2 <- MSE.rf <- rep(list(NA),length(2003:2016))
@@ -768,7 +812,7 @@ for(i in seq_along(2003:2006)){#seq_along(2003:2016)){
       my.importance[[i]] <- importance(model6[[i]])
     }
   }})
-  # R²:0.9107037 0.9233898 0.9237730 0.6025452 0.6408997 0.9027885 0.9044376 0.9115283 0.9620833 0.9128014 0.8948338 0.9022583 0.8607561 0.8712777
+  # R²:c(0.9107037, 0.9233898, 0.9237730, 0.6025452, 0.6408997, 0.9027885, 0.9044376, 0.9115283, 0.9620833, 0.9128014, 0.8948338, 0.9022583, 0.8607561, 0.8712777)
   # MSE : 194.6650 177.1967 176.7386 463.7290 441.6902 197.2239 209.3494 217.1166 129.2542 189.7765 225.8028 209.3840 274.1831 258.4440
 }
 
