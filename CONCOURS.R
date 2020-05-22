@@ -15,8 +15,8 @@
                 'chron',
                 'hutilscpp', #cumsum_reset
                 'rfUtilities', #Pour la cross validation de rf
-                'caret' # for validation
-                )
+                'caret', # for validation
+                'randomForestExplainer')
 
   new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
   if(length(new.packages) > 0) {install.packages(new.packages, dependencies = T, quiet =T, repos='https://cran.rstudio.com/')}
@@ -117,8 +117,9 @@ hour.I.df <- hour.I.df[which(!is.na(hour.I.df$temperature)),]
 sum(is.na(hour.I.df))
 
 hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %in% c("Date",
-                                                                                     "Group.1")])
+                                                                                 "Group.1")])
 # hour.I.df$Date.s <- force_tz(hour.I.df$Date.s,"America/Toronto")
+
 
 # ###
 # hour_Mw.ts <- ts(hour.I.df$Load_Mw,
@@ -149,10 +150,14 @@ hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %i
 {
   hour.I.dt <- as.data.table(hour.I.df)
   hour.I.dt <- hour.I.dt[ad.p.dt[,.(Year,prop)],on='Year']
-  hour.I.dt[,":="(Load_Mw=(Load_Mw*prop),prop=NULL) ] %>% as.data.frame()
-  hour.df <- hour.I.dt
+  hour.df <- hour.I.dt[,":="(Load_Mw=(Load_Mw*prop),prop=NULL) ] %>% as.data.frame()
   # hour.df <- hour.I.dt[,!"prop"] 
   
+  #what_we_want <- ad.df[ad.df$Secteur=='Residentiel',c('Year','Load_PJ')] # ce qu'on veut pour la somme
+  #what_we_have <- with(hour.df,aggregate(Load_Mw,by=list(Year),sum))
+  #what_we_have$x <- what_we_have$x/277777.77777777775
+  #proportion <- what_we_want/what_we_have
+  #proportion$Year <- what_we_have$Group.1
   { 
     salut <- ad.df[which(ad.df$Secteur == 'Residentiel'),c('Year','Load_PJ')]
     salut.prop <- (salut/sum(salut$Load_PJ))$Load_PJ
@@ -162,6 +167,7 @@ hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %i
     (correction <- salut.prop/salut.2.prop)
     correction <- data.frame(Year= 2003:2016, correction = correction)
   }
+  
   
   
   hour.df <- left_join(hour.df,correction,by='Year')
@@ -176,6 +182,11 @@ hour.I.df <- na.omit(hour.I.df[!is.na(hour.I.df$Load_Mw),!colnames(hour.I.df) %i
   #   correction <- salut.prop/salut.2.prop
   # }
 }
+with(hour.df,aggregate(Load_Mw,by=list(Year),sum))/277777.77777777775
+ad.df[ad.df$Secteur=='Residentiel',c('Year','Load_PJ')]
+
+
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # On va utiliser 70% des donnees pour le training : ----
 train <- 1:(ceiling(0.7*nrow(hour.df)))
@@ -714,6 +725,7 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 # essayons d'enlever les variables ayant un petit %IncMSE
 
 
+
 # clean.df <- clean.df[,-which(colnames(clean.df) == 'Year')]
 clean.df <- clean.df[,-which(colnames(clean.df) == 'Weekend')]
 my.importance <- my.plot <- R2 <- MSE.rf <- rep(list(NA),length(2003:2016))
@@ -766,9 +778,13 @@ plot(
   
     #Variable a enlever: holiday, threshold
 varImpPlot(model6)
+<<<<<<< HEAD
 
 importance(model6)
 
+=======
+explain_forest(model6)
+>>>>>>> b9429daf55199d9c93832529c302d29604525ad1
 
 
 getTree(model6, labelVar=T)
@@ -795,11 +811,12 @@ tune <- tuneRF(x,y, ntreeTry=50, stepFactor=2, improve=0.05,trace=F, plot=F)
 tune
 ncol(x)/3
 
+unique(hour.df[train,'Year'])
 
 {
   new_data <- clean.df[-train,]
   plot(new_data[which(new_data$Month == 10 & new_data$Year == 2016),'Load_Mw'],type='l')
-  lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2014)],col='red')  
+  lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2016)],col='red')  
 }
 
 
