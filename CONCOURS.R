@@ -745,31 +745,31 @@ TUR$interval <- interval(TUR$From, TUR$To)
 
 # Database found at : http://www.ontario-hydro.com/current-rates
 # post data.table: http://brooksandrew.github.io/simpleblog/articles/advanced-data-table/
-{
-  TUP.dt <- read.csv("Database/Time_of_Use_Pricing.csv", sep=";") %>% as.data.table()
-  # TUP.dt[,Year:=2002]
-  TUP.ls <- rep(list(TUP.dt),length(2003:2016))
-  i <- 0
-  TUP.ls <- lapply(TUP.ls, function(TUP){
-    i <<- 1+i
-    TUP$Year <- 2003+i
-  
-    
-    TUP[,date.I:= paste0(Year,"-", Month_start) %>% 
-          ymd()
-      ]
-    
-    TUP[Tarif == "Summer", 
-        date.F:= paste0(Year, "-", Month_end) %>% 
-          ymd()
-        ][Tarif == "Winter",
-          date.F:= paste0((Year+1), "-", Month_end) %>% 
-            ymd()
-        ]
-  })
-  rm(i)
-  TUP.df <- TUP.ls %>% rbindlist() %>% as.data.frame()
-}
+# {
+#   TUP.dt <- read.csv("Database/Time_of_Use_Pricing.csv", sep=";") %>% as.data.table()
+#   # TUP.dt[,Year:=2002]
+#   TUP.ls <- rep(list(TUP.dt),length(2003:2016))
+#   i <- 0
+#   TUP.ls <- lapply(TUP.ls, function(TUP){
+#     i <<- 1+i
+#     TUP$Year <- 2003+i
+#   
+#     
+#     TUP[,date.I:= paste0(Year,"-", Month_start) %>% 
+#           ymd()
+#       ]
+#     
+#     TUP[Tarif == "Summer", 
+#         date.F:= paste0(Year, "-", Month_end) %>% 
+#           ymd()
+#         ][Tarif == "Winter",
+#           date.F:= paste0((Year+1), "-", Month_end) %>% 
+#             ymd()
+#         ]
+#   })
+#   rm(i)
+#   TUP.df <- TUP.ls %>% rbindlist() %>% as.data.frame()
+# }
 
 
 
@@ -880,136 +880,131 @@ unique(hour.df[train,'Year'])
 new_data[which(abs(res) > quantile(abs(res))[4]),]
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Tests et validations
-{
-  # model6.cv <- rf.crossValidation(model6,clean.df[train,-which(colnames(clean.df)=='Load_Mw')],p=0.10, n=99, ntree=500)
-  # test, finalement beaucoup trop long a rouler
-  #model6.cv <- rf.crossValidation(model6,clean.df[train,-which(colnames(clean.df)=='Load_Mw')],p=1, n=99, ntree=50)
+
+# model6.cv <- rf.crossValidation(model6,clean.df[train,-which(colnames(clean.df)=='Load_Mw')],p=0.10, n=99, ntree=500)
+# test, finalement beaucoup trop long a rouler
+#model6.cv <- rf.crossValidation(model6,clean.df[train,-which(colnames(clean.df)=='Load_Mw')],p=1, n=99, ntree=50)
+
+# test <- cbind(27854:28022,
+# 6879:7047,
+# 27045:27213,
+# 8801:8969)
+
+par(mfrow =c(2,2))
+for(i in 1:4) {
+  new_data <- clean.df[-train,]
+  pige <- sample.int(nrow(new_data)-7*24,1)
+  data.plot <- pige:(pige+7*24)
+  ylim.range=c(min(pred.rf[data.plot],new_data[data.plot,'Load_Mw']),
+               max(pred.rf[data.plot],new_data[data.plot,'Load_Mw']))
   
-  # test <- cbind(27854:28022,
-  # 6879:7047,
-  # 27045:27213,
-  # 8801:8969)
+  data.plot %>% pred.rf[.] %>% 
+    {plot(.,col='red', type = "l",
+          ylim=ylim.range,
+          xlab =paste0(
+            names(first(.)) %>% as.Date, 
+            "___TO___",
+            names(last(.)) %>% as.Date
+          ) 
+    )
+    };
   
-  par(mfrow =c(2,2))
-  for(i in 1:4) {
-    new_data <- clean.df[-train,]
-    pige <- sample.int(nrow(new_data)-7*24,1)
-    data.plot <- pige:(pige+7*24)
-    ylim.range=c(min(pred.rf[data.plot],new_data[data.plot,'Load_Mw']),
-                 max(pred.rf[data.plot],new_data[data.plot,'Load_Mw']))
-    
-    data.plot %>% pred.rf[.] %>% 
-      {plot(.,col='red', type = "l",
-            ylim=ylim.range,
-            xlab =paste0(
-              names(first(.)) %>% as.Date, 
-              "___TO___",
-              names(last(.)) %>% as.Date
-            ) 
-      )
-      };
-    
-    data.plot %>% 
-      {lines(new_data[.,'Load_Mw'],type='l')}
-    
-    data.plot %>% 
-      {paste0("[",i,"] - ",
-              as.character(first(.)),":", 
-              as.character(last(.)),
-              "   (",
-              new_data$weekday[first(.)], 
-              "__to__", 
-              new_data$weekday[last(.)],
-              ")"
-      )
-      } %>% title()
-  }
-  # data.plot %>% 
-  # {plot(pred.rf[.],col='red', type = "l")}
+  data.plot %>% 
+    {lines(new_data[.,'Load_Mw'],type='l')}
   
-  # plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],type='l')
-  # lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2013)],col='red')
-  
-  
-  quantile(clean.df$diff_mean_temp_month)
-  
-  mauvais_res.df <- new_data[which(abs(res) > quantile(abs(res))[4]),]
-  table(mauvais_res.df$Hour)
-  table(mauvais_res.df$Year)
-  table(mauvais_res.df$Month)
-  table(mauvais_res.df$Hour,mauvais_res.df$Month)
-  table(mauvais_res.df$Day)
-  table(mauvais_res.df$weekday)
-  table(mauvais_res.df$holiday)
-  View(mauvais_res.df)
-  
-  mauvais_res.df$res <- res[which(abs(res) > quantile(abs(res))[4])]
-  
-  clean.df[which(clean.df$Year==2012 & clean.df$Month == 10 & clean.df$Day == 24),]
-  new_data[which(new_data$Year==2012 & new_data$Month == 10 & new_data$Day == 24),]
-  
-  test <- with(clean.df,aggregate(Load_Mw,by=list(weekday,Month),mean))
-  test2 <- with(clean.df,aggregate(Load_Mw,by=list(weekday,Month),quantile))
-  plot(test$x,type='l')
-  nrow(hour.df)
-  
-  # acf des residus :
-  acf(res,lag=24)
-  acf(res,lag=24*7) # Nos residus ont l'air corrélés pas mal...
-  
-  plot(clean.df[-train,'Load_Mw'],res)
-  
-  #corAR1(acf(res,lag=1,plot=F)$acf[2],form=~.)
-  
-  
-  # Pour voir les variables pertinentes
-  reg <- glm(Load_Mw~.,subset = train,clean.df,family='gaussian')
-  summary(reg)
-  
-  plot(predict(reg),col='red')
-  lines(clean.df$Load_Mw)
-  
-  reg2 <- step(reg,scale=0,trace=F)
-  summary(reg2)
-  
-  pred.rf <- predict(reg2,newdata=clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')])
-  res <- pred.rf - clean.df[-train,'Load_Mw']
-  MSE.rf <- mean(res^2)
-  sqrt(MSE.rf) 
-  
-  test <- clean.df[which(clean.df$Year == 2016),which(colnames(clean.df) %in% c('Year','Day','Month','Hour','Load_Mw'))]
-  plot(test$Load_Mw,type='l')
-  
-  # Test d'un glm
-  test <- glm(Load_Mw~.,data=clean.df,subset = train,family='gaussian')
-  summary(test)
-  step <- step(test)
-  summary(step)
-  
-  pred.test <- predict(test,newdata=clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')])
-  res.test <- pred.test - clean.df[-train,'Load_Mw']
-  mean(res.test^2)
-  
-  plot(step,which=1)
-  
-  
-  # VALIDATION
-  trControl <- trainControl(method = "cv",
-                            number = 10,
-                            search = "grid")
-  
-  #train(Load_Mw~., clean.df[train,], method = "rf", metric= "RMSE", trControl = trainControl(), tuneGrid = NULL) # prend 40 ans
-  
-  
-  
-  
+  data.plot %>% 
+    {paste0("[",i,"] - ",
+            as.character(first(.)),":", 
+            as.character(last(.)),
+            "   (",
+            new_data$weekday[first(.)], 
+            "__to__", 
+            new_data$weekday[last(.)],
+            ")"
+    )
+    } %>% title()
 }
+# data.plot %>% 
+# {plot(pred.rf[.],col='red', type = "l")}
+
+# plot(new_data[which(new_data$Month == 10 & new_data$Year == 2013),'Load_Mw'],type='l')
+# lines(pred.rf[which(new_data$Month == 10 & new_data$Year == 2013)],col='red')
+
+
+quantile(clean.df$diff_mean_temp_month)
+
+mauvais_res.df <- new_data[which(abs(res) > quantile(abs(res))[4]),]
+table(mauvais_res.df$Hour)
+table(mauvais_res.df$Year)
+table(mauvais_res.df$Month)
+table(mauvais_res.df$Hour,mauvais_res.df$Month)
+table(mauvais_res.df$Day)
+table(mauvais_res.df$weekday)
+table(mauvais_res.df$holiday)
+View(mauvais_res.df)
+
+mauvais_res.df$res <- res[which(abs(res) > quantile(abs(res))[4])]
+
+clean.df[which(clean.df$Year==2012 & clean.df$Month == 10 & clean.df$Day == 24),]
+new_data[which(new_data$Year==2012 & new_data$Month == 10 & new_data$Day == 24),]
+
+test <- with(clean.df,aggregate(Load_Mw,by=list(weekday,Month),mean))
+test2 <- with(clean.df,aggregate(Load_Mw,by=list(weekday,Month),quantile))
+plot(test$x,type='l')
+nrow(hour.df)
+
+# acf des residus :
+acf(res,lag=24)
+acf(res,lag=24*7) # Nos residus ont l'air corrélés pas mal...
+
+plot(clean.df[-train,'Load_Mw'],res)
+
+#corAR1(acf(res,lag=1,plot=F)$acf[2],form=~.)
+
+
+# Pour voir les variables pertinentes
+reg <- glm(Load_Mw~.,subset = train,clean.df,family='gaussian')
+summary(reg)
+
+plot(predict(reg),col='red')
+lines(clean.df$Load_Mw)
+
+reg2 <- step(reg,scale=0,trace=F)
+summary(reg2)
+
+pred.rf <- predict(reg2,newdata=clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')])
+res <- pred.rf - clean.df[-train,'Load_Mw']
+MSE.rf <- mean(res^2)
+sqrt(MSE.rf) 
+
+test <- clean.df[which(clean.df$Year == 2016),which(colnames(clean.df) %in% c('Year','Day','Month','Hour','Load_Mw'))]
+plot(test$Load_Mw,type='l')
+
+# Test d'un glm
+test <- glm(Load_Mw~.,data=clean.df,subset = train,family='gaussian')
+summary(test)
+step <- step(test)
+summary(step)
+
+pred.test <- predict(test,newdata=clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')])
+res.test <- pred.test - clean.df[-train,'Load_Mw']
+mean(res.test^2)
+
+plot(step,which=1)
+
+
+# VALIDATION
+trControl <- trainControl(method = "cv",
+                          number = 10,
+                          search = "grid")
+
+#train(Load_Mw~., clean.df[train,], method = "rf", metric= "RMSE", trControl = trainControl(), tuneGrid = NULL) # prend 40 ans
 
 # GRAPHIQUES
 
 # Graphique pour l'importance
 #for(i in 1:length(model6)){
- # min_depth_frame <- min_depth_distribution(model6[[i]])  
+# min_depth_frame <- min_depth_distribution(model6[[i]])  
 #}
 
 {
@@ -1075,10 +1070,6 @@ plot(R[,2], type = "l", xaxt = "n", yaxt = "n",
      ylab = "", xlab = "", col = "red", lty = 2,ylim = c(0.4,1))
 axis(side = 4)
 mtext("R squared", side = 4, line = 3)
-
-
-
-
 
 
 {
