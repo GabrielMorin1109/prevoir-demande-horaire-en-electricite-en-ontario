@@ -728,11 +728,12 @@ sapply(ad.df,function(X) sum(is.na(X))) # Aucune donne manquante
 
 # clean.df <- clean.df[,-which(colnames(clean.df) == 'Year')]
 clean.df <- clean.df[,-which(colnames(clean.df) == 'Weekend')]
-my.importance <- my.plot <- R2 <- MSE.rf <- rep(list(NA),length(2003:2016))
+model6 <- my.importance <- my.plot <- R2 <- MSE.rf <- rep(list(NA),length(2003:2016))
 for(i in seq_along(2003:2006)){#seq_along(2003:2016)){
   # {i=1
   year.i <- (2003:2016)[i]
   train <- which(clean.df$Year !=  year.i)
+  system.time({
   {
     {
       if(detectCores()==8){
@@ -747,7 +748,7 @@ for(i in seq_along(2003:2006)){#seq_along(2003:2016)){
       getDoParWorkers() # Just checking, how many workers you have 
     }
     
-    model6 <- foreach(ntree=rep(floor(num.of.tree/cores), cores), .combine=randomForest::combine,
+    model6[[i]] <- foreach(ntree=rep(floor(num.of.tree/cores), cores), .combine=randomForest::combine,
                       .multicombine=TRUE, .packages='randomForest') %dopar% {
                         randomForest(Load_Mw~.,data= na.omit(clean.df)[,-which(colnames(clean.df) == 'Year')],
                                      subset=train,
@@ -759,14 +760,14 @@ for(i in seq_along(2003:2006)){#seq_along(2003:2016)){
     stopCluster(cl)
     
     {
-      pred.rf <- predict(model6,newdata=clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')])
+      pred.rf <- predict(model6[[i]],newdata=clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')])
       res <- pred.rf - clean.df[-train,'Load_Mw']
-      (MSE.rf[i] <- mean(abs(res)))
-      (R2[i] <- 1 - (sum((res)^2)/sum((clean.df[-train,'Load_Mw']-mean(clean.df[-train,'Load_Mw']))^2)))
-      # my.plot[i] <- varImpPlot(model6)
-      # my.importance[i] <- importance(model6)
+      (MSE.rf[[i]] <- mean(abs(res)))
+      (R2[[i]] <- 1 - (sum((res)^2)/sum((clean.df[-train,'Load_Mw']-mean(clean.df[-train,'Load_Mw']))^2)))
+      # my.plot[i] <- varImpPlot(model6[[i]])
+      my.importance[[i]] <- importance(model6[[i]])
     }
-  }
+  }})
   # R²:0.9107037 0.9233898 0.9237730 0.6025452 0.6408997 0.9027885 0.9044376 0.9115283 0.9620833 0.9128014 0.8948338 0.9022583 0.8607561 0.8712777
   # MSE : 194.6650 177.1967 176.7386 463.7290 441.6902 197.2239 209.3494 217.1166 129.2542 189.7765 225.8028 209.3840 274.1831 258.4440
 }
