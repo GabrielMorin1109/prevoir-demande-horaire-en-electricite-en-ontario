@@ -793,52 +793,89 @@ for (i in 1:nrow(TUR)){
 clean.test <- clean.df
 # clean.df <- clean.test
 # clean.df$Rate <- as.character(clean.df$Rate)
-clean.df <- clean.df[,!colnames(clean.df) %in% c('Date.s','Weekend',
+clean.df <- clean.df[,!colnames(clean.df) %in% c('Weekend',
                                                 "price_over_5000_Kw", "price_under_5000_kw", "irradiance_sommet_atmosphere")]
-str(clean.df)
-model6 <- my.importance <- my.plot <- R2 <- MSE.rf <- rep(list(NA),length(2003:2016))
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# https://www.analyticsvidhya.com/blog/2016/05/h2o-data-table-build-models-large-data-sets/
+library(h2o)
+localH2O <- h2o.init(nthreads = -1)
+h2o.init()
 
-for(i in seq_along(2003:2008)){
+# noms de variables inportantes
+y.dep <- colnames(clean.df)[which(colnames(clean.df) == "Load_Mw")]
+x.indep <- colnames(clean.df)[which(!colnames(clean.df) == c("Load_Mw","Year"))]
+
+# initiation des variables
+model6 <- my.importance <- my.plot <- R2 <- MSE.rf <- rep(list(NA),length(2003:2016))
+clean.df$Date.s <- as.character(clean.df$Date.s)
+options(java.parameters = "-Xmx28000m") #afin de donner plus de heap space a java
+##################################################################################
+# Random forest: #################################################################
+for(i in 5:14){
   year.i <- (2003:2016)[i]
   train <- which(clean.df$Year !=  year.i)
+  
+  train.h2o <- as.h2o(clean.df[train,])
+  test.h2o <- as.h2o(clean.df[-train,])
+  
+  
   system.time({
-  {
-    {
-      if(detectCores()==8){
-        cores <- 7
-        num.of.tree <- 50
-      } else {
-        cores <- 10
-        num.of.tree <- 100
-      }
-      cl <- makeCluster(cores)
-      registerDoParallel(cores)
-      getDoParWorkers() # Just checking, how many workers you have 
-    }
-    
-    model6[[i]] <- foreach(ntree=rep(floor(num.of.tree/cores), cores), .combine=randomForest::combine,
-                      .multicombine=TRUE, .packages='randomForest') %dopar% {
-                        randomForest(Load_Mw~.,data= clean.df[,!colnames(clean.df)%in%"Year"],
-                                     subset=train,
-                                     importance=T,
-                                     ntree=ntree)#,
-                                     # mtry=12)
-                      }
-    
-    stopCluster(cl)
-    
-    {
-      pred.rf <- predict(model6[[i]],newdata=clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')])
-      res <- pred.rf - clean.df[-train,'Load_Mw']
-      (MSE.rf[[i]] <- mean(abs(res)))
-      (R2[[i]] <- 1 - (sum((res)^2)/sum((clean.df[-train,'Load_Mw']-mean(clean.df[-train,'Load_Mw']))^2)))
-      # my.plot[i] <- varImpPlot(model6[[i]])
-      my.importance[[i]] <- importance(model6[[i]])
-    }
-  }})
-  # R²:c(0.9107037, 0.9233898, 0.9237730, 0.6025452, 0.6408997, 0.9027885, 0.9044376, 0.9115283, 0.9620833, 0.9128014, 0.8948338, 0.9022583, 0.8607561, 0.8712777)
-  # MSE : 194.6650 177.1967 176.7386 463.7290 441.6902 197.2239 209.3494 217.1166 129.2542 189.7765 225.8028 209.3840 274.1831 258.4440
+    model6[[i]] <- h2o.randomForest(y=y.dep, 
+                                    x=x.indep, 
+                                    training_frame = train.h2o, 
+                                    validation = test.h2o,
+                                    ntrees = 500,
+                                    mtries = 12,
+                                    seed = 1122)
+    # saveRDS(model6, "model6_1_4.rds")
+    # test <- readRDS("model6_1_4.rds")
+    # saveRDS(model6, "model6_5_X.rds")
+  })
 }
+##################################################################################
+##################################################################################
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# for(i in seq_along(2003:2008)){
+#   year.i <- (2003:2016)[i]
+#   train <- which(clean.df$Year !=  year.i)
+#   system.time({
+#   {
+#     {
+#       if(detectCores()==8){
+#         cores <- 7
+#         num.of.tree <- 50
+#       } else {
+#         cores <- 10
+#         num.of.tree <- 100
+#       }
+#       cl <- makeCluster(cores)
+#       registerDoParallel(cores)
+#       getDoParWorkers() # Just checking, how many workers you have 
+#     }
+#     
+#     model6[[i]] <- foreach(ntree=rep(floor(num.of.tree/cores), cores), .combine=randomForest::combine,
+#                       .multicombine=TRUE, .packages='randomForest') %dopar% {
+#                         randomForest(Load_Mw~.,data= clean.df[,!colnames(clean.df)%in%"Year"],
+#                                      subset=train,
+#                                      importance=T,
+#                                      ntree=ntree)#,
+#                                      # mtry=12)
+#                       }
+#     
+#     stopCluster(cl)
+#     
+#     {
+#       pred.rf <- predict(model6[[i]],newdata=clean.df[-train,-which(colnames(clean.df) %in% 'Load_Mw')])
+#       res <- pred.rf - clean.df[-train,'Load_Mw']
+#       (MSE.rf[[i]] <- mean(abs(res)))
+#       (R2[[i]] <- 1 - (sum((res)^2)/sum((clean.df[-train,'Load_Mw']-mean(clean.df[-train,'Load_Mw']))^2)))
+#       # my.plot[i] <- varImpPlot(model6[[i]])
+#       my.importance[[i]] <- importance(model6[[i]])
+#     }
+#   }})
+#   # R²:c(0.9107037, 0.9233898, 0.9237730, 0.6025452, 0.6408997, 0.9027885, 0.9044376, 0.9115283, 0.9620833, 0.9128014, 0.8948338, 0.9022583, 0.8607561, 0.8712777)
+#   # MSE : 194.6650 177.1967 176.7386 463.7290 441.6902 197.2239 209.3494 217.1166 129.2542 189.7765 225.8028 209.3840 274.1831 258.4440
+# }
 
 plot(
   tibble(year= 2003:2016,
@@ -848,15 +885,24 @@ plot(
 #Variable a enlever: holiday, threshold
 varImpPlot(model6[[i]])
 test <- model6[[i]]
-randomForest::(test)
+
+
+
+test <- randomForest(Load_Mw~.,data= clean.df[,!colnames(clean.df)%in%"Year"],
+             subset=train,
+             importance=T,
+             ntree=100)
+
 test2 <- randomForest(mpg ~ ., mtcars, keep.forest=FALSE, ntree=100)
+
+plot(test)
 
 importance(model6)
 explain_forest(model6)
 
 
 
-getTree(model6, labelVar=T)
+getTree(model6[[i]], labelVar=T)
 summary(model6)
 varImpPlot(model6,main = "Variable importance plot of the RF")
 # library(randomForestExplainer)
@@ -902,9 +948,9 @@ new_data[which(abs(res) > quantile(abs(res))[4]),]
   # 6879:7047,
   # 27045:27213,
   # 8801:8969)
-  
+  pred.rf <- predict.rforest[,1]
   par(mfrow =c(2,2))
-  for(i in 1:4) {
+    for(i in 1:4) {
     new_data <- clean.df[-train,]
     pige <- sample.int(nrow(new_data)-7*24,1)
     data.plot <- pige:(pige+7*24)
@@ -915,9 +961,9 @@ new_data[which(abs(res) > quantile(abs(res))[4]),]
       {plot(.,col='red', type = "l",
             ylim=ylim.range,
             xlab =paste0(
-              names(first(.)) %>% as.Date, 
+              names(first(.)), 
               "___TO___",
-              names(last(.)) %>% as.Date
+              names(last(.))
             ) 
       )
       };
