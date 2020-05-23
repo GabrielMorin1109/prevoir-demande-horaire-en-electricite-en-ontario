@@ -802,16 +802,16 @@ localH2O <- h2o.init(nthreads = -1)
 h2o.init()
 
 # noms de variables inportantes
-y.dep <- colnames(clean.df)[which(colnames(clean.df) == "Load_Mw")]
-x.indep <- colnames(clean.df)[which(!colnames(clean.df) == c("Load_Mw","Year"))]
+y.dep <- colnames(clean.df)[colnames(clean.df) %in% "Load_Mw"]
+x.indep <- colnames(clean.df)[!colnames(clean.df) %in% c("Load_Mw","Year")]
 
 # initiation des variables
 model6 <- my.importance <- my.plot <- R2 <- MSE.rf <- rep(list(NA),length(2003:2016))
 clean.df$Date.s <- as.character(clean.df$Date.s)
-options(java.parameters = "-Xmx28000m") #afin de donner plus de heap space a java
+# options(java.parameters = "-Xmx64000m") #afin de donner plus de heap space a java
 ##################################################################################
 # Random forest: #################################################################
-for(i in 5:14){
+for(i in 11:14){
   year.i <- (2003:2016)[i]
   train <- which(clean.df$Year !=  year.i)
   
@@ -827,11 +827,14 @@ for(i in 5:14){
                                     ntrees = 500,
                                     mtries = 12,
                                     seed = 1122)
+    # saveRDS(model6[11], "model6_11.rds")
     # saveRDS(model6, "model6_1_4.rds")
-    # test <- readRDS("model6_1_4.rds")
-    # saveRDS(model6, "model6_5_X.rds")
+    
   })
 }
+    test1 <- readRDS("model6_1_4.rds")
+    test2 <- readRDS("model6_5_10.rds")
+    test3 <- readRDS("model6_11.rds")
 ##################################################################################
 ##################################################################################
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
